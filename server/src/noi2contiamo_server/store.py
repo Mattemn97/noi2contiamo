@@ -26,6 +26,8 @@ from .models import (
     Invite,
     Member,
     Payee,
+    Recurrence,
+    RecurrenceDismissal,
     Rule,
     Transaction,
     TransactionFingerprint,
@@ -39,6 +41,8 @@ from .schemas import (
     InviteDoc,
     MemberDoc,
     PayeeDoc,
+    RecurrenceDismissalDoc,
+    RecurrenceDoc,
     RuleDoc,
     TransactionDoc,
     normalize,
@@ -79,6 +83,8 @@ COLLECTIONS: dict[str, CollectionDef] = {
         scoped=True,
     ),
     "rules": CollectionDef(Rule, RuleDoc, ("enabled",), ("order_asc", "id_asc")),
+    "recurrences": CollectionDef(Recurrence, RecurrenceDoc, ("accountId",), ("id_asc",)),
+    "recurrenceDismissals": CollectionDef(RecurrenceDismissal, RecurrenceDismissalDoc, (), ("id_asc",)),
     "importProfiles": CollectionDef(ImportProfile, ImportProfileDoc, ("headerSignature",), ("id_asc",)),
     "importBatches": CollectionDef(ImportBatch, ImportBatchDoc, ("accountId",), ("id_asc",)),
 }
@@ -167,10 +173,12 @@ def _row_dict(row: Base) -> dict[str, Any]:
 
 def find(db: Session, collection: str, me: Member, doc_id: str) -> Base | None:
     model: Any = COLLECTIONS[collection].model
-    try:
-        key = uuid.UUID(doc_id)
-    except ValueError:
-        return None
+    key: Any = doc_id
+    if "id" in _uuid_columns(model):
+        try:
+            key = uuid.UUID(doc_id)
+        except ValueError:
+            return None
     return db.scalars(scoped(model, me).where(model.id == key)).one_or_none()
 
 
@@ -242,11 +250,24 @@ def _check_refs(db: Session, me: Member, doc: Doc) -> None:
     """Riferimenti dei documenti di import (feature 11): un id inesistente è 422, non un errore SQL."""
     refs: list[tuple[str, Any, str | None]] = []
     if isinstance(doc, TransactionDoc):
-        refs.append(("importBatchId", ImportBatch, doc.import_batch_id))
+        refs += [
+            ("importBatchId", ImportBatch, doc.import_batch_id),
+            ("recurrenceId", Recurrence, doc.recurrence_id),
+        ]
     elif isinstance(doc, ImportBatchDoc):
         refs += [("accountId", Account, doc.account_id), ("profileId", ImportProfile, doc.profile_id)]
     elif isinstance(doc, ImportProfileDoc):
         refs.append(("defaultAccountId", Account, doc.default_account_id))
+    elif isinstance(doc, RecurrenceDoc):
+        refs += [
+            ("accountId", Account, doc.account_id),
+            ("toAccountId", Account, doc.to_account_id),
+            ("categoryId", Category, doc.category_id),
+            ("payeeId", Payee, doc.payee_id),
+        ]
+        refs += [("split", Member, x) for x in (doc.split.shares if doc.split else {})]
+    elif isinstance(doc, RecurrenceDismissalDoc):
+        refs.append(("dismissedByMemberId", Member, doc.dismissed_by_member_id))
     elif isinstance(doc, RuleDoc):
         c, a = doc.conditions, doc.actions
         refs += [("conditions.accountIds", Account, x) for x in c.accountIds or []]
@@ -438,6 +459,8 @@ def remove(db: Session, collection: str, me: Member, doc_id: str) -> None:
         used = bool(db.scalar(select(exists().where(in_family, Transaction.payee_id == row.id))))
     elif collection == "importBatches":
         used = bool(db.scalar(select(exists().where(in_family, Transaction.import_batch_id == row.id))))
+    elif collection == "recurrences":
+        used = bool(db.scalar(select(exists().where(in_family, Transaction.recurrence_id == row.id))))
     elif collection == "importProfiles":
         used = bool(
             db.scalar(
@@ -536,7 +559,7 @@ def list_docs(
     if cursor is not None:
         if not isinstance(cursor, dict) or not isinstance(cursor.get("id"), str):
             raise ApiError("invalid_query", message="cursore non valido")
-        cid = _to_uuid(cursor["id"])
+        cid: Any = _to_uuid(cursor["id"]) if "id" in uuids else cursor["id"]
         if order == "date_desc":
             d = str(cursor.get("date", ""))
             stmt = stmt.where(or_(model.date < d, and_(model.date == d, model.id < cid)))

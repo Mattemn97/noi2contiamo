@@ -1,6 +1,6 @@
 // Invarianti del movimento che dipendono da altri documenti (AC-2). Le altre stanno nello schema.
 import { err, ok, type Result } from "../result";
-import type { Account, Category, Payee, Transaction } from "./schemas";
+import type { Account, Category, Payee, Recurrence, Transaction } from "./schemas";
 
 export interface TransactionContext {
   readonly account: Account | null;
@@ -42,6 +42,21 @@ export function checkTransaction(tx: Transaction, ctx: TransactionContext): Resu
       issues.push("visibility: un movimento su un conto privato è privato");
   }
   return issues.length === 0 ? ok(tx) : err(issues);
+}
+
+/** Riferimenti di una ricorrenza (spec 0008, AC-14): conti, categoria, destinatario e membri della divisione. */
+export function recurrenceRefIssues(
+  rec: Recurrence,
+  ctx: Pick<TransactionContext, "account" | "toAccount" | "category" | "payee" | "memberIds">,
+): string[] {
+  const issues: string[] = [];
+  if (!ctx.account) issues.push("accountId: conto inesistente");
+  if (rec.toAccountId !== null && !ctx.toAccount) issues.push("toAccountId: conto inesistente");
+  if (rec.categoryId !== null && !ctx.category) issues.push("categoryId: categoria inesistente");
+  if (rec.payeeId !== null && ctx.payee === null) issues.push("payeeId: destinatario inesistente");
+  for (const memberId of Object.keys(rec.split?.shares ?? {}))
+    if (!ctx.memberIds.has(memberId)) issues.push(`split: ${memberId} non è un membro della famiglia`);
+  return issues;
 }
 
 /** `visibility`, `ownerMemberId` e `payerMemberId` di default, copiati dal conto (spec 0002, Value sourcing). */

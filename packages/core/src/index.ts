@@ -13,6 +13,7 @@ export * from "./model/schemas";
 export * from "./money";
 export * from "./normalize";
 export * from "./register";
+export * from "./recurring";
 export * from "./result";
 export * from "./rules";
 export * from "./split";

@@ -251,6 +251,65 @@ class RuleDoc(Doc):
     actions: RuleActions
 
 
+class RecurrenceFrequency(Strict):
+    unit: Literal["day", "week", "month", "year"]
+    interval: Annotated[StrictInt, Field(ge=1)]
+    dayOfMonth: Annotated[StrictInt, Field(ge=1, le=31)] | None = None
+    count: Annotated[StrictInt, Field(ge=1, le=1000)] | None = None
+
+
+class RecurrenceDescription(Strict):
+    op: Literal["contains", "startsWith", "equals"]
+    value: Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class RecurrenceDoc(Doc):
+    """Come `recurrenceSchema` di core (spec 0008)."""
+
+    name: Name
+    type: TxType
+    account_id: Id
+    to_account_id: Id | None = None
+    category_id: Id | None = None
+    payee_id: Id | None = None
+    expected_amount_cents: PositiveCents
+    amount_tolerance_bp: Bp = 1000
+    split: TransactionSplit | None = None
+    frequency: RecurrenceFrequency
+    start_date: IsoDate
+    end_date: IsoDate | None = None
+    match_window_days: Annotated[StrictInt, Field(ge=0)] = 5
+    description_match: RecurrenceDescription | None = None
+    skipped_dates: list[IsoDate] = Field(default_factory=list)
+    archived_at_ms: Ms | None = None
+
+    @model_validator(mode="after")
+    def _shape(self) -> "RecurrenceDoc":
+        issues: list[str] = []
+        if self.type == "transfer":
+            if self.to_account_id is None:
+                issues.append("toAccountId: obbligatorio per un giroconto")
+            if self.to_account_id == self.account_id:
+                issues.append("toAccountId: deve essere diverso da accountId")
+            if self.category_id is not None:
+                issues.append("categoryId: vietato per un giroconto")
+            if self.split is not None:
+                issues.append("split: vietato per un giroconto")
+        elif self.to_account_id is not None:
+            issues.append("toAccountId: solo per un giroconto")
+        if issues:
+            raise ValueError("; ".join(issues))
+        return self
+
+
+class RecurrenceDismissalDoc(Doc):
+    """L'id è la chiave del suggerimento scartato (un hash), non un UUID."""
+
+    id: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,128}$")]  # type: ignore[assignment]
+    dismissed_at_ms: Ms
+    dismissed_by_member_id: Id
+
+
 class ColHeader(Strict):
     header: Annotated[str, StringConstraints(min_length=1)]
 

@@ -118,6 +118,7 @@ export type SuiteGroup =
   | "balance"
   | "import"
   | "rules"
+  | "recurrences"
   | "export";
 
 export interface SuiteOptions {
@@ -1083,6 +1084,39 @@ export function runContractSuite(name: string, makeAdapter: () => DataAdapter, o
         expect(planApplyRules(again, reordered, ctx)).toEqual([]);
         unwrap(await adapter.remove(familyId, "rules", recurring.id));
         expect(errorOf(await adapter.get(familyId, "rules", recurring.id)).code).toBe("not_found");
+      });
+    });
+
+    group("recurrences", "ricorrenze e scarti (feature 13, spec 0008)", () => {
+      it("salva la ricorrenza, collega un movimento, scarta un suggerimento e rifiuta riferimenti inesistenti", async () => {
+        const { adapter, familyId, shared, ownerId, expense } = await setup(makeAdapter());
+        const rec: WriteDocOf<"recurrences"> = {
+          id: newId(),
+          name: "Affitto",
+          type: "expense",
+          accountId: shared.id,
+          expectedAmountCents: 70000,
+          frequency: { unit: "month", interval: 1, count: 12 },
+          startDate: "2026-01-05",
+        };
+        unwrap(await adapter.put(familyId, "recurrences", rec));
+        const got = unwrap(await adapter.get(familyId, "recurrences", rec.id));
+        expect(got).toMatchObject({ frequency: rec.frequency, amountToleranceBp: 1000, skippedDates: [], archivedAtMs: null });
+
+        const tx = expense({ recurrenceId: rec.id, recurrenceDueDate: "2026-11-05" });
+        unwrap(await adapter.put(familyId, "transactions", tx));
+        expect(unwrap(await adapter.list(familyId, "transactions", { where: { recurrenceId: rec.id } })).docs).toHaveLength(1);
+
+        const key = "a".repeat(32);
+        unwrap(await adapter.put(familyId, "recurrenceDismissals", { id: key, dismissedAtMs: 1, dismissedByMemberId: ownerId }));
+        expect(unwrap(await adapter.list(familyId, "recurrenceDismissals")).docs.map((d) => d.id)).toEqual([key]);
+        unwrap(await adapter.remove(familyId, "recurrenceDismissals", key));
+
+        const ghost = newId();
+        expect(errorOf(await adapter.put(familyId, "recurrences", { ...rec, id: newId(), categoryId: ghost })).code).toBe("invalid");
+        expect(errorOf(await adapter.put(familyId, "recurrences", { ...rec, id: newId(), accountId: ghost })).code).toBe("invalid");
+        expect(errorOf(await adapter.put(familyId, "transactions", expense({ recurrenceId: ghost, recurrenceDueDate: "2026-11-05" }))).code).toBe("invalid");
+        expect(errorOf(await adapter.put(familyId, "recurrences", { ...rec, id: newId(), toAccountId: shared.id })).code).toBe("invalid");
       });
     });
 

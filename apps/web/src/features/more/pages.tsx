@@ -152,6 +152,19 @@ export function MorePage() {
             </div>
           </div>
         </Card>
+        <Card title={t("rec.more")} as="section">
+          <div className={cx(styles.stack)}>
+            <p className={cx(styles.muted)}>{t("rec.moreHelp")}</p>
+            <div className={cx(styles.actions)}>
+              <Button variant="secondary" onPress={() => void navigate("/ricorrenti")}>
+                {t("rec.open")}
+              </Button>
+              <Button variant="secondary" onPress={() => void navigate("/previsioni")}>
+                {t("rec.openForecast")}
+              </Button>
+            </div>
+          </div>
+        </Card>
         <Card title={t("rules.more")} as="section">
           <div className={cx(styles.stack)}>
             <p className={cx(styles.muted)}>{t("rules.moreHelp")}</p>

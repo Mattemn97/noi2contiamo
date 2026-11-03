@@ -26,7 +26,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 10 | Giroconti e saldo finale tra i membri | Slice 6 | done |
 | 11 | Import CSV con profili salvati | Slice 7 | done |
 | 12 | Regole automatiche | Slice 8 | done |
-| 13 | Pagamenti ricorrenti e previsioni | Slice 9 | planned |
+| 13 | Pagamenti ricorrenti e previsioni | Slice 9 | done |
 | 14 | Dashboard di coppia | Slice 10 | planned |
 | 15 | Area personale | Slice 11 | planned |
 | 16 | Confronto tra periodi | Slice 12 | planned |
@@ -211,7 +211,7 @@ code in `packages/core/src/rules/`, `apps/web/src/features/rules/`, `apps/web/sr
 
 ## Slice 9
 
-### 13. Pagamenti ricorrenti e previsioni · needs decision
+### 13. Pagamenti ricorrenti e previsioni · done
 Inserimento di pagamenti ricorrenti (affitto, abbonamenti, bollette), riconoscimento automatico di quelli già presenti nello storico, e previsione dei costi futuri.
 **Done when:** una ricorrenza genera le scadenze previste; il sistema propone come ricorrenti i pagamenti simili che si ripetono; la previsione mostra il saldo atteso nei prossimi mesi; un pagamento reale chiude la scadenza prevista.
 - [ ] Design it (spec): `/architect ricorrenze e previsioni`

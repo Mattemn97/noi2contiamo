@@ -10,6 +10,10 @@ import { FamilyPage } from "./features/family/FamilyPage";
 import { JoinPage } from "./features/family/JoinPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { RequireFamily, RequireSession } from "./features/guards";
+import { ForecastPage } from "./features/recurring/ForecastPage";
+import { RecurrenceEditorPage } from "./features/recurring/RecurrenceEditorPage";
+import { RecurringPage } from "./features/recurring/RecurringPage";
+import { SuggestionsPage } from "./features/recurring/SuggestionsPage";
 import { RuleEditorPage } from "./features/rules/RuleEditorPage";
 import { RulesPage } from "./features/rules/RulesPage";
 import { MorePage, NotFoundPage, OverviewPage, PersonalPage } from "./features/more/pages";
@@ -39,6 +43,10 @@ export const routes: RouteObject[] = [
           { path: "/altro/conti", element: <AccountsPage /> },
           { path: "/altro/categorie", element: <CategoriesPage /> },
           { path: "/altro/destinatari", element: <PayeesPage /> },
+          { path: "/ricorrenti", element: <RecurringPage /> },
+          { path: "/ricorrenti/suggerimenti", element: <SuggestionsPage /> },
+          { path: "/ricorrenti/:id", element: <RecurrenceEditorPage /> },
+          { path: "/previsioni", element: <ForecastPage /> },
           { path: "/altro/regole", element: <RulesPage /> },
           { path: "/altro/regole/:id", element: <RuleEditorPage /> },
         ],

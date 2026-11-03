@@ -56,8 +56,9 @@ function toInviteError(status: number, body: unknown): InviteError {
 /** Il documento come lo vuole il server: default di `core` applicati, audit tolto (lo mette il server). */
 function prepare(collection: CollectionName, doc: object): Result<Record<string, unknown>, DataError> {
   const raw = doc as Record<string, unknown>;
-  const id = typeof raw.id === "string" ? raw.id : "";
-  const placeholder = { createdAtMs: 0, createdByMemberId: id, updatedAtMs: 0, updatedByMemberId: id };
+  // L'audit è un segnaposto valido: l'id del documento non va bene se è una chiave (recurrenceDismissals).
+  const nobody = "00000000-0000-7000-8000-000000000000";
+  const placeholder = { createdAtMs: 0, createdByMemberId: nobody, updatedAtMs: 0, updatedByMemberId: nobody };
   const parsed = parseDoc(collection, { ...raw, ...placeholder });
   if (!parsed.ok) return err({ code: "invalid", issues: parsed.error });
   const audit = new Set<string>(AUDIT_KEYS);

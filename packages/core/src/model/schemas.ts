@@ -321,7 +321,26 @@ export const importBatchSchema = z.strictObject({
   ...auditShape,
 });
 
-export const recurrenceSchema = z.strictObject({
+/** Forma della ricorrenza (spec 0008, AC-14): un giroconto ha il conto di arrivo, entrate e spese no. */
+export function recurrenceShapeIssues(rec: {
+  type: "income" | "expense" | "transfer";
+  accountId: string;
+  toAccountId: string | null;
+  categoryId: string | null;
+  split: unknown;
+}): string[] {
+  const issues: string[] = [];
+  if (rec.type === "transfer") {
+    if (rec.toAccountId === null) issues.push("toAccountId: obbligatorio per un giroconto");
+    if (rec.toAccountId === rec.accountId) issues.push("toAccountId: deve essere diverso da accountId");
+    if (rec.categoryId !== null) issues.push("categoryId: vietato per un giroconto");
+    if (rec.split !== null) issues.push("split: vietato per un giroconto");
+  } else if (rec.toAccountId !== null) issues.push("toAccountId: solo per un giroconto");
+  return issues;
+}
+
+/** La ricorrenza senza il controllo di forma (per ricavarne la bozza senza audit). */
+export const recurrenceObjectSchema = z.strictObject({
   id: idSchema,
   name: nameSchema,
   type: transactionTypeSchema,
@@ -336,6 +355,8 @@ export const recurrenceSchema = z.strictObject({
     unit: z.enum(["day", "week", "month", "year"]),
     interval: z.int().min(1),
     dayOfMonth: z.int().min(1).max(31).optional(),
+    /** Numero di scadenze (spec 0008, AC-1); le saltate contano. */
+    count: z.int().min(1).max(1000).optional(),
   }),
   startDate: isoDateSchema,
   endDate: isoDateSchema.nullable().default(null),
@@ -344,6 +365,10 @@ export const recurrenceSchema = z.strictObject({
   skippedDates: z.array(isoDateSchema).default([]),
   archivedAtMs: nullableMs,
   ...auditShape,
+});
+
+export const recurrenceSchema = recurrenceObjectSchema.superRefine((rec, ctx) => {
+  for (const message of recurrenceShapeIssues(rec)) ctx.addIssue({ code: "custom", message });
 });
 
 /** L'id è la chiave del suggerimento scartato (un hash), non un UUIDv7. */

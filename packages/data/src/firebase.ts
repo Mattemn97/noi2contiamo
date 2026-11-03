@@ -6,6 +6,7 @@
 import {
   checkCategory,
   checkTransaction,
+  recurrenceRefIssues,
   nameTaken,
   COLLECTIONS,
   err,
@@ -23,6 +24,7 @@ import {
   type Member,
   type Payee,
   type Result,
+  type Recurrence,
   type Transaction,
 } from "@noi2contiamo/core";
 import { FirebaseError, initializeApp, type FirebaseOptions } from "firebase/app";
@@ -183,7 +185,23 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
         payee: tx.payeeId ? ((await readDoc(familyId, "payees", tx.payeeId)) as Payee | null) : null,
       });
       if (!checked.ok) return err({ code: "invalid", issues: checked.error.map((message) => ({ path: "", message })) });
+      if (tx.recurrenceId !== null && (await readDoc(familyId, "recurrences", tx.recurrenceId)) === null)
+        return err({ code: "invalid", issues: [{ path: "recurrenceId", message: "documento inesistente" }] });
       if (await fingerprintTaken(familyId, tx, me)) return err({ code: "conflict", reason: "duplicate_fingerprint" });
+    }
+    if (c === "recurrences") {
+      const rec = next as unknown as Recurrence;
+      const account = async (id: string | null) =>
+        id ? ((await readDoc(familyId, "accounts", id)) as Account | null) : null;
+      const members = await getDocs(coll(db, "families", familyId, "members"));
+      const issues = recurrenceRefIssues(rec, {
+        account: await account(rec.accountId),
+        toAccount: await account(rec.toAccountId),
+        category: rec.categoryId ? ((await readDoc(familyId, "categories", rec.categoryId)) as Category | null) : null,
+        payee: rec.payeeId ? ((await readDoc(familyId, "payees", rec.payeeId)) as Payee | null) : null,
+        memberIds: new Set(members.docs.map((d) => d.id)),
+      });
+      if (issues.length > 0) return err({ code: "invalid", issues: issues.map((message) => ({ path: "", message })) });
     }
     if (c === "accounts" || c === "categories" || c === "payees") {
       // Nomi unici e un solo livello di categorie: le regole non leggono le altre righe, lo fa l'adapter.
@@ -213,6 +231,10 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
         .empty;
     if (c === "importBatches") {
       for (const scope of scopes("transactions", undefined, me)) if (await any("transactions", "importBatchId", scope)) return true;
+      return false;
+    }
+    if (c === "recurrences") {
+      for (const scope of scopes("transactions", undefined, me)) if (await any("transactions", "recurrenceId", scope)) return true;
       return false;
     }
     if (c === "importProfiles") return any("importBatches", "profileId");

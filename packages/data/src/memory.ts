@@ -2,6 +2,7 @@ import {
   buildExport,
   checkCategory,
   checkTransaction,
+  recurrenceRefIssues,
   COLLECTION_NAMES,
   COLLECTIONS,
   err,
@@ -21,6 +22,7 @@ import {
   type Member,
   type Payee,
   type Result,
+  type Recurrence,
   type Transaction,
 } from "@noi2contiamo/core";
 import {
@@ -209,8 +211,22 @@ export function createMemoryAdapter(options: { now?: () => number } = {}): DataA
       });
       if (!checked.ok)
         return err({ code: "invalid", issues: checked.error.map((message) => ({ path: "", message })) });
+      if (tx.recurrenceId !== null && !fs.docs.recurrences.has(tx.recurrenceId))
+        return err({ code: "invalid", issues: [{ path: "recurrenceId", message: "documento inesistente" }] });
       const taken = new Set(others.flatMap((d) => (d as unknown as Transaction).importFingerprints));
       if (tx.importFingerprints.some((f) => taken.has(f))) return conflict("duplicate_fingerprint");
+    }
+    if (collection === "recurrences") {
+      const rec = doc as unknown as Recurrence;
+      const account = (id: string | null) => (id ? ((fs.docs.accounts.get(id) as Account | undefined) ?? null) : null);
+      const issues = recurrenceRefIssues(rec, {
+        account: account(rec.accountId),
+        toAccount: account(rec.toAccountId),
+        category: rec.categoryId ? ((fs.docs.categories.get(rec.categoryId) as Category | undefined) ?? null) : null,
+        payee: rec.payeeId ? ((fs.docs.payees.get(rec.payeeId) as Payee | undefined) ?? null) : null,
+        memberIds: new Set(fs.docs.members.keys()),
+      });
+      if (issues.length > 0) return err({ code: "invalid", issues: issues.map((message) => ({ path: "", message })) });
     }
     if (collection === "payees" && others.some((d) => d.normalizedName === doc.normalizedName))
       return conflict("duplicate");
@@ -242,6 +258,7 @@ export function createMemoryAdapter(options: { now?: () => number } = {}): DataA
         (txs.some((t) => t.categoryId === id) || [...fs.docs.categories.values()].some((c) => c.parentId === id))) ||
       (collection === "payees" && txs.some((t) => t.payeeId === id)) ||
       // Import (spec 0006): un lotto con movimenti, un profilo con lotti, un conto con lotti o profili.
+      (collection === "recurrences" && txs.some((t) => t.recurrenceId === id)) ||
       (collection === "importBatches" && txs.some((t) => t.importBatchId === id)) ||
       (collection === "importProfiles" && [...fs.docs.importBatches.values()].some((b) => b.profileId === id)) ||
       (collection === "accounts" &&
