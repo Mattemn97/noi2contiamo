@@ -310,6 +310,54 @@ class RecurrenceDismissalDoc(Doc):
     dismissed_by_member_id: Id
 
 
+class RecurringDueSetting(Strict):
+    enabled: bool = True
+    leadDays: Annotated[StrictInt, Field(ge=0, le=60)] = 2
+
+
+class SettlementSetting(Strict):
+    enabled: bool = False
+    thresholdCents: Annotated[StrictInt, Field(ge=0)] = 0
+
+
+class ImportReminderSetting(Strict):
+    enabled: bool = False
+    everyDays: Annotated[StrictInt, Field(ge=1, le=365)] = 30
+
+
+class NotificationSettings(Strict):
+    recurringDue: RecurringDueSetting = Field(default_factory=RecurringDueSetting)
+    settlement: SettlementSetting = Field(default_factory=SettlementSetting)
+    importReminder: ImportReminderSetting = Field(default_factory=ImportReminderSetting)
+
+
+class ChannelSettings(Strict):
+    inApp: bool = True
+    webPush: bool = False
+    email: bool = False
+    telegram: bool = False
+
+
+class MemberSettingsDoc(Doc):
+    """L'id è il `memberId` del proprietario (feature 19)."""
+
+    notifications: NotificationSettings = Field(default_factory=NotificationSettings)
+    channels: ChannelSettings = Field(default_factory=ChannelSettings)
+    default_view: Literal["family", "personal"] = "family"
+
+
+class ReminderDoc(Doc):
+    member_id: Id
+    kind: Literal["recurringDue", "settlement", "importReminder"]
+    ref_id: Annotated[str, StringConstraints(max_length=128)] | None = None
+    fire_at_ms: Ms
+    title: Annotated[str, StringConstraints(min_length=1, max_length=120)]
+    body: Annotated[str, StringConstraints(max_length=1000)] = ""
+    status: Literal["pending", "sent", "dismissed"] = "pending"
+    sent_at_ms: Ms | None = None
+    dedup_key: Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
 class ColHeader(Strict):
     header: Annotated[str, StringConstraints(min_length=1)]
 

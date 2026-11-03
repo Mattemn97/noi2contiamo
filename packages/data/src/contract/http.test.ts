@@ -46,8 +46,8 @@ function makeAdapter(url: string): DataAdapter {
 
 if (baseUrl) {
   runContractSuite("http", () => makeAdapter(baseUrl), {
-    // Impostazioni e promemoria arrivano con il feature 19, export e import con il feature 23.
-    skip: ["personal", "export"],
+    // L'export e l'import arrivano con il feature 23.
+    skip: ["export"],
   });
 } else {
   describe.skip("contratto DataAdapter: http (lancia `npm run test:contract:http`)", () => {

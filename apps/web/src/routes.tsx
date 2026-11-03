@@ -17,6 +17,7 @@ import { RecurringPage } from "./features/recurring/RecurringPage";
 import { SuggestionsPage } from "./features/recurring/SuggestionsPage";
 import { RuleEditorPage } from "./features/rules/RuleEditorPage";
 import { RulesPage } from "./features/rules/RulesPage";
+import { RemindersPage, ReminderSettingsPage } from "./features/reminders/RemindersPages";
 import { MorePage, NotFoundPage } from "./features/more/pages";
 import { EditTransactionPage, NewTransactionPage } from "./features/transactions/NewTransactionPage";
 import { TransactionsPage } from "./features/transactions/TransactionsPage";
@@ -47,6 +48,8 @@ export const routes: RouteObject[] = [
           { path: "/ricorrenti", element: <RecurringPage /> },
           { path: "/ricorrenti/suggerimenti", element: <SuggestionsPage /> },
           { path: "/ricorrenti/:id", element: <RecurrenceEditorPage /> },
+          { path: "/promemoria", element: <RemindersPage /> },
+          { path: "/altro/promemoria", element: <ReminderSettingsPage /> },
           { path: "/previsioni", element: <ForecastPage /> },
           { path: "/altro/regole", element: <RulesPage /> },
           { path: "/altro/regole/:id", element: <RuleEditorPage /> },

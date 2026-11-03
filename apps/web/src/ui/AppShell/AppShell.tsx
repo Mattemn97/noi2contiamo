@@ -24,12 +24,14 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export interface AppShellProps {
   readonly current?: NavId | undefined;
+  /** Numero da mostrare accanto a una voce (promemoria da vedere). */
+  readonly badges?: Partial<Record<NavId, number>> | undefined;
   readonly children: ReactNode;
 }
 
 export const MAIN_ID = "contenuto";
 
-export function AppShell({ current, children }: AppShellProps) {
+export function AppShell({ current, badges, children }: AppShellProps) {
   return (
     <div className={cx(styles.shell)}>
       <a className={cx(styles.skip)} href={`#${MAIN_ID}`}>
@@ -48,6 +50,7 @@ export function AppShell({ current, children }: AppShellProps) {
               >
                 <Icon aria-hidden="true" strokeWidth={1.75} size={20} className={cx(styles.navIcon)} />
                 <span className={cx(styles.navLabel)}>{t(label)}</span>
+                {(badges?.[id] ?? 0) > 0 ? <span className={cx(styles.navBadge)}>{badges?.[id]}</span> : null}
               </a>
             </li>
           ))}

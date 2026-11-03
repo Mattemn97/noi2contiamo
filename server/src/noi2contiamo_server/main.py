@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -12,6 +13,7 @@ from starlette.types import Scope
 from .api import router
 from .db import make_engine, run_migrations
 from .errors import install_error_handlers
+from .notifier import build_senders, run_scheduler
 from .security import CsrfMiddleware
 from .settings import Settings, get_settings
 
@@ -39,7 +41,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         run_migrations(settings.database_url)
         app.state.engine = make_engine(settings.database_url)
+        senders = build_senders(settings)
+        scheduler = (
+            asyncio.create_task(run_scheduler(app.state.engine, settings, senders)) if senders else None
+        )
         yield
+        if scheduler is not None:
+            scheduler.cancel()
         app.state.engine.dispose()
 
     app = FastAPI(title="Noi2Contiamo", lifespan=lifespan)

@@ -17,6 +17,7 @@ export * from "./normalize";
 export * from "./register";
 export * from "./report";
 export * from "./recurring";
+export * from "./reminders";
 export * from "./result";
 export * from "./rules";
 export * from "./split";

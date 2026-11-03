@@ -185,3 +185,14 @@
     outline: 2px solid Highlight;
   }
 }
+
+.navBadge {
+  min-inline-size: 1.25rem;
+  padding-inline: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  text-align: center;
+}

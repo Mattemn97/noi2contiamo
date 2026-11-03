@@ -1,9 +1,11 @@
 // Le route protette: serve una sessione, e per le pagine dei dati anche una famiglia.
 import type { FamilySummary } from "@noi2contiamo/data";
+import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useOutletContext } from "react-router";
 import { useFamilies, useSession } from "../data/queries";
 import { t } from "../i18n/it";
 import { AppShell, ErrorState, NAV_ITEMS, Skeleton, type NavId } from "../ui";
+import { useReminders } from "./reminders/useReminders";
 import { pickActiveFamily, readActiveFamily } from "./family/invite";
 
 export function RequireSession() {
@@ -31,7 +33,31 @@ export function RequireFamily() {
   else if (families.isError) body = <ErrorState onRetry={() => void families.refetch()} />;
   else if (!family) return <Navigate to="/benvenuto" replace />;
   else body = <Outlet context={family} />;
-  return <AppShell current={navFor(pathname)}>{body}</AppShell>;
+  return family ? (
+    <ShellWithBadge summary={family} current={navFor(pathname)}>
+      {body}
+    </ShellWithBadge>
+  ) : (
+    <AppShell current={navFor(pathname)}>{body}</AppShell>
+  );
+}
+
+/** Il guscio con il numero dei promemoria da vedere accanto ad "Altro". */
+function ShellWithBadge({
+  summary,
+  current,
+  children,
+}: {
+  readonly summary: FamilySummary;
+  readonly current: NavId | undefined;
+  readonly children: ReactNode;
+}) {
+  const { visible } = useReminders(summary);
+  return (
+    <AppShell current={current} badges={{ more: visible.length }}>
+      {children}
+    </AppShell>
+  );
 }
 
 /** La famiglia attiva, data dal layout `RequireFamily` (l'ultima scelta su questo dispositivo, o la prima). */

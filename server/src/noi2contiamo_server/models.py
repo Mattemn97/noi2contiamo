@@ -396,3 +396,6 @@ class Reminder(FamilyScoped, Base):
     status: Mapped[str] = mapped_column(String(16), default="pending")
     sent_at_ms: Mapped[int | None] = mapped_column(BigInteger)
     dedup_key: Mapped[str] = mapped_column(String(200))
+    # Solo del server (feature 19): tentativi di invio fatti e canali già serviti ("email,telegram").
+    send_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    sent_channels: Mapped[str] = mapped_column(String(64), default="", server_default="")

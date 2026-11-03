@@ -12,10 +12,14 @@ from fastapi import HTTPException, status
 from sqlalchemy import Select, or_, select
 from sqlalchemy.orm import Session
 
-from .models import Account, Base, Member, Transaction
+from .models import Account, Base, Member, MemberSettings, Reminder, Transaction
 
 # Collezioni con documenti privati: il filtro di visibilità vale sempre.
 VISIBILITY_SCOPED: tuple[type[Base], ...] = (Account, Transaction)
+
+
+# Collezioni personali (feature 19): le vede solo il membro a cui appartengono, per colonna.
+PERSONAL: dict[type[Base], str] = {MemberSettings: "id", Reminder: "member_id"}
 
 
 def active_member(session: Session, family_id: uuid.UUID, user_id: uuid.UUID) -> Member | None:
@@ -40,4 +44,6 @@ def scoped[M: Base](model: type[M], member: Member) -> Select[tuple[M]]:
     stmt = select(model).where(columns.family_id == member.family_id)
     if model in VISIBILITY_SCOPED:
         stmt = stmt.where(or_(columns.visibility == "shared", columns.owner_member_id == member.id))
+    if model in PERSONAL:
+        stmt = stmt.where(getattr(model, PERSONAL[model]) == member.id)
     return stmt

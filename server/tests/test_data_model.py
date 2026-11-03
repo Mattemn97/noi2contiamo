@@ -187,7 +187,7 @@ def world(engine: Engine) -> Iterator[World]:
 def test_la_migrazione_crea_tutte_le_tabelle_e_combacia_con_i_modelli(engine: Engine) -> None:
     assert set(inspect(engine).get_table_names()) >= TABLES
     with engine.connect() as connection:
-        assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0002"
+        assert connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "0003"
         diff = compare_metadata(MigrationContext.configure(connection), Base.metadata)
     assert diff == []
 

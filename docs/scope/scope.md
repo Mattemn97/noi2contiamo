@@ -32,7 +32,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 16 | Confronto tra periodi | Slice 12 | done |
 | 17 | Export CSV | Slice 13 | done |
 | 18 | Report PDF settimanali, mensili, annuali | Slice 14 | done |
-| 19 | Promemoria e notifiche gratuite | Slice 15 | planned |
+| 19 | Promemoria e notifiche gratuite | Slice 15 | done |
 | 20 | Pacchetti di installazione (container, cloud, locale) | Slice 16 | planned |
 | 21 | Pronto per l'open source | Slice 17 | planned |
 | 22 | Interfaccia in inglese | Deferred | planned |
@@ -258,10 +258,11 @@ Scelte: dati puri in `packages/core/src/report.ts` (riusa dashboard e `memberBal
 
 ## Slice 15
 
-### 19. Promemoria e notifiche gratuite · needs decision
+### 19. Promemoria e notifiche gratuite · done
 Promemoria per scadenze ricorrenti, saldo da pareggiare e import da fare, usando solo canali gratuiti e senza piani a pagamento.
 **Done when:** ricevi un promemoria prima di una scadenza; puoi attivare o spegnere ogni tipo di promemoria; funziona in tutte e tre le modalità di installazione (o il limite è dichiarato chiaramente).
-- [ ] Design it (spec): `/architect notifiche`
+Scelte: il browser calcola (`packages/core/src/reminders.ts`, id stabili dalla chiave `tipo|rif|data`), elenco con numero accanto ad Altro e notifiche del browser solo ad app aperta, dopo un clic. Solo Python: il browser carica i promemoria nuovi (quindi solo quando qualcuno apre l'app) e un ciclo in-process invia email SMTP e Telegram, con variabili `N2C_*` facoltative, nessun doppio invio e tentativi limitati. Niente Web Push (serve HTTPS, di solito assente su un server di casa); con Firebase Spark restano solo elenco e notifiche del browser, dichiarato nelle impostazioni. Nessuna spec dedicata.
+- [x] Build it
 
 ## Slice 16
 

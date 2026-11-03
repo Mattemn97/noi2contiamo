@@ -113,6 +113,19 @@ export function MorePage() {
             </div>
           </div>
         </Card>
+        <Card title={t("rem.more")} as="section">
+          <div className={cx(styles.stack)}>
+            <p className={cx(styles.muted)}>{t("rem.moreHelp")}</p>
+            <div className={cx(styles.actions)}>
+              <Button variant="secondary" onPress={() => void navigate("/promemoria")}>
+                {t("rem.open")}
+              </Button>
+              <Button variant="secondary" onPress={() => void navigate("/altro/promemoria")}>
+                {t("rem.openSettings")}
+              </Button>
+            </div>
+          </div>
+        </Card>
         <Card title={t("rec.more")} as="section">
           <div className={cx(styles.stack)}>
             <p className={cx(styles.muted)}>{t("rec.moreHelp")}</p>

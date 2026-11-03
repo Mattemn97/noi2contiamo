@@ -25,9 +25,11 @@ from .models import (
     ImportProfile,
     Invite,
     Member,
+    MemberSettings,
     Payee,
     Recurrence,
     RecurrenceDismissal,
+    Reminder,
     Rule,
     Transaction,
     TransactionFingerprint,
@@ -40,14 +42,16 @@ from .schemas import (
     ImportProfileDoc,
     InviteDoc,
     MemberDoc,
+    MemberSettingsDoc,
     PayeeDoc,
     RecurrenceDismissalDoc,
     RecurrenceDoc,
+    ReminderDoc,
     RuleDoc,
     TransactionDoc,
     normalize,
 )
-from .scope import scoped
+from .scope import PERSONAL, scoped
 from .security import now_ms
 
 MAX_LIMIT = 500
@@ -87,6 +91,8 @@ COLLECTIONS: dict[str, CollectionDef] = {
     "recurrenceDismissals": CollectionDef(RecurrenceDismissal, RecurrenceDismissalDoc, (), ("id_asc",)),
     "importProfiles": CollectionDef(ImportProfile, ImportProfileDoc, ("headerSignature",), ("id_asc",)),
     "importBatches": CollectionDef(ImportBatch, ImportBatchDoc, ("accountId",), ("id_asc",)),
+    "memberSettings": CollectionDef(MemberSettings, MemberSettingsDoc, (), ("id_asc",)),
+    "reminders": CollectionDef(Reminder, ReminderDoc, ("status", "kind"), ("id_asc",)),
 }
 
 
@@ -162,6 +168,9 @@ def parse(collection: str, raw: dict[str, Any]) -> Doc:
 
 
 def _visible(collection: str, values: dict[str, Any], me: Member) -> bool:
+    personal = PERSONAL.get(COLLECTIONS[collection].model)
+    if personal is not None:
+        return values.get(personal) == me.id
     if COLLECTIONS[collection].scoped:
         return values.get("visibility") == "shared" or values.get("owner_member_id") == me.id
     return True
@@ -268,6 +277,10 @@ def _check_refs(db: Session, me: Member, doc: Doc) -> None:
         refs += [("split", Member, x) for x in (doc.split.shares if doc.split else {})]
     elif isinstance(doc, RecurrenceDismissalDoc):
         refs.append(("dismissedByMemberId", Member, doc.dismissed_by_member_id))
+    elif isinstance(doc, ReminderDoc):
+        refs.append(("memberId", Member, doc.member_id))
+    elif isinstance(doc, MemberSettingsDoc):
+        refs.append(("id", Member, doc.id))
     elif isinstance(doc, RuleDoc):
         c, a = doc.conditions, doc.actions
         refs += [("conditions.accountIds", Account, x) for x in c.accountIds or []]
@@ -370,6 +383,9 @@ def put(db: Session, collection: str, me: Member, raw: dict[str, Any]) -> dict[s
     if collection in ("accounts", "categories", "payees"):
         _check_catalog(db, me, collection, values)
 
+    if collection == "reminders":
+        _guard_reminder(db, me, values, prev)
+
     t = now_ms()
     values |= {
         "family_id": me.family_id,
@@ -392,6 +408,24 @@ def put(db: Session, collection: str, me: Member, raw: dict[str, Any]) -> dict[s
     if collection == "members" and _active_owners(db, me.family_id) == 0:
         raise conflict("last_owner")
     return doc_of(db, collection, row)
+
+
+def _guard_reminder(db: Session, me: Member, values: dict[str, Any], prev: Any) -> None:
+    """Il server decide l'invio (feature 19): il client non segna "sent" né riapre un promemoria inviato."""
+    clash = db.scalar(
+        select(
+            exists().where(
+                Reminder.family_id == me.family_id,
+                Reminder.dedup_key == values["dedup_key"],
+                Reminder.id != values["id"],
+            )
+        )
+    )
+    if clash:
+        raise conflict("duplicate")
+    was_sent = prev is not None and prev.status == "sent"
+    values["status"] = "sent" if was_sent else ("pending" if values["status"] == "sent" else values["status"])
+    values["sent_at_ms"] = prev.sent_at_ms if was_sent else None
 
 
 def _check_member_write(me: Member, values: dict[str, Any], prev: dict[str, Any] | None) -> None:
