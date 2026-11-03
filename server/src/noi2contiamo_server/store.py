@@ -26,6 +26,7 @@ from .models import (
     Invite,
     Member,
     Payee,
+    Rule,
     Transaction,
     TransactionFingerprint,
 )
@@ -38,6 +39,7 @@ from .schemas import (
     InviteDoc,
     MemberDoc,
     PayeeDoc,
+    RuleDoc,
     TransactionDoc,
     normalize,
 )
@@ -57,7 +59,8 @@ class CollectionDef:
     scoped: bool = False
 
 
-# Le collezioni del filo base (feature 5), dei destinatari (feature 7) e dell'import (feature 11).
+# Le collezioni del filo base (feature 5), dei destinatari (feature 7), dell'import (feature 11)
+# e delle regole (feature 12).
 # Le altre arrivano con le loro slice.
 COLLECTIONS: dict[str, CollectionDef] = {
     "members": CollectionDef(Member, MemberDoc, ("userId", "role"), ("id_asc",)),
@@ -75,6 +78,7 @@ COLLECTIONS: dict[str, CollectionDef] = {
         has_date=True,
         scoped=True,
     ),
+    "rules": CollectionDef(Rule, RuleDoc, ("enabled",), ("order_asc", "id_asc")),
     "importProfiles": CollectionDef(ImportProfile, ImportProfileDoc, ("headerSignature",), ("id_asc",)),
     "importBatches": CollectionDef(ImportBatch, ImportBatchDoc, ("accountId",), ("id_asc",)),
 }
@@ -243,6 +247,17 @@ def _check_refs(db: Session, me: Member, doc: Doc) -> None:
         refs += [("accountId", Account, doc.account_id), ("profileId", ImportProfile, doc.profile_id)]
     elif isinstance(doc, ImportProfileDoc):
         refs.append(("defaultAccountId", Account, doc.default_account_id))
+    elif isinstance(doc, RuleDoc):
+        c, a = doc.conditions, doc.actions
+        refs += [("conditions.accountIds", Account, x) for x in c.accountIds or []]
+        refs += [("conditions.payeeIds", Payee, x) for x in c.payeeIds or []]
+        refs += [("conditions.memberIds", Member, x) for x in c.memberIds or []]
+        refs += [
+            ("actions.categoryId", Category, a.categoryId),
+            ("actions.payeeId", Payee, a.payeeId),
+            ("actions.transferAccountId", Account, a.transferAccountId),
+        ]
+        refs += [("actions.split", Member, x) for x in (a.split.shares if a.split else {})]
     issues = [
         {"path": path, "message": "documento inesistente"}
         for path, model, ref in refs

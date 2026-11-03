@@ -11,6 +11,7 @@ import {
   payeeFromName,
   resolveSplit,
   type SplitIssue,
+  type SplitSpec,
   type Account,
   type Category,
   type Family,
@@ -34,6 +35,15 @@ export interface TransactionDraft {
   readonly payeeId?: string | null;
   /** Divisione scritta a mano nell'editor; assente o null = automatica (spec 0004, AC-1). */
   readonly split?: SplitDraft | null;
+  /** Campi rimasti come li ha suggeriti una regola (spec 0007, AC-9), con l'id della regola. */
+  readonly rule?: RuleApplied;
+}
+
+export interface RuleApplied {
+  readonly category?: string;
+  readonly payee?: string;
+  readonly split?: { readonly spec: SplitSpec; readonly ruleId: string };
+  readonly recurring?: readonly string[];
 }
 
 /** Lo stato dell'editor della divisione: quote ancora da completare (null = campo vuoto). */
@@ -123,12 +133,29 @@ export function buildTransaction(
                 ? existing.provenance.split
                 : "default",
         }
-      : { category: "manual", payee: "manual", split: split.source === "manual" ? "manual" : "default" },
+      : {
+          category: draft.rule?.category ? "rule" : "manual",
+          payee: draft.rule?.payee && draft.payeeId ? "rule" : "manual",
+          split: split.source === "manual" ? "manual" : split.source === "rule" ? "rule" : "default",
+        },
+    ...(existing ? {} : { ruleIds: ruleIdsOf(draft, split) }),
     ...defaults,
     // Chi ha pagato resta lo stesso se il conto non cambia.
     payerMemberId:
       existing && existing.accountId === account.id ? existing.payerMemberId : defaults.payerMemberId,
   });
+}
+
+function ruleIdsOf(draft: TransactionDraft, split: NonNullable<Transaction["split"]>): string[] {
+  const r = draft.rule;
+  if (!r) return [];
+  const ids = [
+    r.category,
+    draft.payeeId ? r.payee : undefined,
+    split.source === "rule" ? r.split?.ruleId : undefined,
+    ...(r.recurring ?? []),
+  ];
+  return ids.filter((id, i): id is string => id !== undefined && ids.indexOf(id) === i);
 }
 
 /**
@@ -153,6 +180,8 @@ function splitFor(
       ? ok(resolveSplit({ manual: checked.value, family: ctx.family.defaultSplit }))
       : checked;
   }
+  if (draft.rule?.split && !existing)
+    return ok(resolveSplit({ rule: draft.rule.split.spec, family: ctx.family.defaultSplit }));
   if (
     existing?.split &&
     existing.split.source !== "manual" &&
@@ -171,7 +200,7 @@ function splitFor(
 
 /** La divisione che il modulo mostrerebbe in automatico (anteprima, nessun controllo). */
 export function previewAutoSplit(
-  draft: Pick<TransactionDraft, "type" | "categoryId" | "accountId">,
+  draft: Pick<TransactionDraft, "type" | "categoryId" | "accountId" | "rule">,
   ctx: DraftContext,
 ): NonNullable<Transaction["split"]> | null {
   const account = ctx.accounts.find((a) => a.id === draft.accountId);

@@ -195,6 +195,62 @@ class TransactionDoc(Doc):
         return self
 
 
+TxType = Literal["income", "expense", "transfer"]
+PositiveCents = Annotated[StrictInt, Field(gt=0)]
+
+
+class RuleDescription(Strict):
+    op: Literal["contains", "startsWith", "equals", "pattern"]
+    value: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
+class RuleConditions(Strict):
+    """Come `ruleConditionsSchema` di core (spec 0007): i nomi restano in camelCase nel JSON."""
+
+    match: Literal["all", "any"] = "all"
+    types: Annotated[list[TxType], Field(min_length=1)] | None = None
+    accountIds: Annotated[list[Id], Field(min_length=1)] | None = None
+    payeeIds: Annotated[list[Id], Field(min_length=1)] | None = None
+    memberIds: Annotated[list[Id], Field(min_length=1)] | None = None
+    description: RuleDescription | None = None
+    amountMinCents: PositiveCents | None = None
+    amountMaxCents: PositiveCents | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "RuleConditions":
+        fields = self.model_dump(exclude_none=True, exclude={"match"})
+        if not fields:
+            raise ValueError("serve almeno una condizione")
+        low, high = self.amountMinCents, self.amountMaxCents
+        if low is not None and high is not None and low > high:
+            raise ValueError("l'importo minimo supera il massimo")
+        return self
+
+
+class RuleActions(Strict):
+    categoryId: Id | None = None
+    payeeId: Id | None = None
+    split: SplitSpec | None = None
+    transferAccountId: Id | None = None
+    recurring: Literal[True] | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "RuleActions":
+        if not self.model_dump(exclude_none=True):
+            raise ValueError("serve almeno un'azione")
+        if self.transferAccountId is not None and (self.categoryId is not None or self.split is not None):
+            raise ValueError("un giroconto non ha categoria né divisione")
+        return self
+
+
+class RuleDoc(Doc):
+    name: Name
+    enabled: StrictBool = True
+    order: StrictInt = 0
+    conditions: RuleConditions
+    actions: RuleActions
+
+
 class ColHeader(Strict):
     header: Annotated[str, StringConstraints(min_length=1)]
 

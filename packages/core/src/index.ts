@@ -14,5 +14,6 @@ export * from "./money";
 export * from "./normalize";
 export * from "./register";
 export * from "./result";
+export * from "./rules";
 export * from "./split";
 export * from "./transfers";

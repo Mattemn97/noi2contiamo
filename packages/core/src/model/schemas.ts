@@ -47,6 +47,11 @@ export const descriptionMatchSchema = z.strictObject({
   op: z.enum(["contains", "startsWith", "equals"]),
   value: z.string().min(1).max(200),
 });
+/** Testo della descrizione in una regola: anche `pattern` con `*` e `?` (spec 0007, AC-2). */
+export const ruleDescriptionSchema = z.strictObject({
+  op: z.enum(["contains", "startsWith", "equals", "pattern"]),
+  value: z.string().trim().min(1).max(200),
+});
 
 // ---- Globali ------------------------------------------------------------------------------
 
@@ -217,28 +222,52 @@ export const transactionSchema = z
     for (const message of transactionShapeIssues(tx)) ctx.addIssue({ code: "custom", message });
   });
 
+/** Condizioni di una regola (spec 0007, AC-1..AC-3). `match` non conta come condizione. */
+export const ruleConditionsSchema = z
+  .strictObject({
+    match: z.enum(["all", "any"]).default("all"),
+    types: z.array(transactionTypeSchema).min(1).optional(),
+    accountIds: z.array(idSchema).min(1).optional(),
+    payeeIds: z.array(idSchema).min(1).optional(),
+    memberIds: z.array(idSchema).min(1).optional(),
+    description: ruleDescriptionSchema.optional(),
+    amountMinCents: positiveCentsSchema.optional(),
+    amountMaxCents: positiveCentsSchema.optional(),
+  })
+  .refine(
+    (c) => Object.entries(c).some(([key, v]) => key !== "match" && v !== undefined),
+    "serve almeno una condizione",
+  )
+  .refine(
+    (c) =>
+      c.amountMinCents === undefined ||
+      c.amountMaxCents === undefined ||
+      c.amountMinCents <= c.amountMaxCents,
+    { message: "l'importo minimo supera il massimo", path: ["amountMaxCents"] },
+  );
+
+/** Azioni di una regola (spec 0007, AC-4). */
+export const ruleActionsSchema = z
+  .strictObject({
+    categoryId: idSchema.optional(),
+    payeeId: idSchema.optional(),
+    split: splitSpecSchema.optional(),
+    transferAccountId: idSchema.optional(),
+    recurring: z.literal(true).optional(),
+  })
+  .refine((a) => Object.values(a).some((v) => v !== undefined), "serve almeno un'azione")
+  .refine((a) => a.transferAccountId === undefined || (a.categoryId === undefined && a.split === undefined), {
+    message: "un giroconto non ha categoria né divisione",
+    path: ["transferAccountId"],
+  });
+
 export const ruleSchema = z.strictObject({
   id: idSchema,
   name: nameSchema,
   enabled: z.boolean().default(true),
   order: z.int().default(0),
-  conditions: z
-    .strictObject({
-      types: z.array(transactionTypeSchema).min(1).optional(),
-      accountIds: z.array(idSchema).min(1).optional(),
-      payeeIds: z.array(idSchema).min(1).optional(),
-      description: descriptionMatchSchema.optional(),
-      amountMinCents: positiveCentsSchema.optional(),
-      amountMaxCents: positiveCentsSchema.optional(),
-    })
-    .refine((c) => Object.values(c).some((v) => v !== undefined), "serve almeno una condizione"),
-  actions: z
-    .strictObject({
-      categoryId: idSchema.optional(),
-      payeeId: idSchema.optional(),
-      split: splitSpecSchema.optional(),
-    })
-    .refine((a) => Object.values(a).some((v) => v !== undefined), "serve almeno un'azione"),
+  conditions: ruleConditionsSchema,
+  actions: ruleActionsSchema,
   ...auditShape,
 });
 

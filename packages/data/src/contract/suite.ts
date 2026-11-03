@@ -10,8 +10,11 @@ import {
   headerSignature,
   matchProfile,
   parseCsv,
+  planApplyRules,
   planImport,
   readRows,
+  reorderRules,
+  ruleImportHook,
   undoImportOps,
   memberAmounts,
   memberBalances,
@@ -114,6 +117,7 @@ export type SuiteGroup =
   | "split"
   | "balance"
   | "import"
+  | "rules"
   | "export";
 
 export interface SuiteOptions {
@@ -979,6 +983,106 @@ export function runContractSuite(name: string, makeAdapter: () => DataAdapter, o
         expect(errorOf(await adapter.get(familyId, "importBatches", batchId)).code).toBe("not_found");
         expect(unwrap(await adapter.list(familyId, "transactions", { where: { importBatchId: batchId } })).docs).toEqual([]);
         expect((await plan()).counts).toMatchObject({ new: 4, duplicate: 0 });
+      });
+    });
+
+    group("rules", "regole automatiche (feature 12, spec 0007)", () => {
+      it("salva in ordine, applica all'import e ai vecchi senza toccare il manuale", async () => {
+        const { adapter, familyId, shared, category, ownerId, partnerId, expense } = await setup(makeAdapter());
+        const payee = { id: newId(), name: "Esselunga", normalizedName: "esselunga" };
+        const split = { kind: "bp" as const, shares: { [ownerId]: 6000, [partnerId]: 4000 } };
+        const esselunga: WriteDocOf<"rules"> = {
+          id: newId(),
+          name: "Esselunga",
+          order: 1,
+          conditions: { description: { op: "pattern", value: "*esselunga*" } },
+          actions: { categoryId: category.id, payeeId: payee.id, split },
+        };
+        const recurring: WriteDocOf<"rules"> = {
+          id: newId(),
+          name: "Ricorrente",
+          order: 0,
+          enabled: false,
+          conditions: { match: "any", types: ["income"], amountMinCents: 1 },
+          actions: { recurring: true },
+        };
+        unwrap(
+          await adapter.commit(familyId, [
+            { type: "put", collection: "payees", doc: payee },
+            { type: "put", collection: "rules", doc: esselunga },
+            { type: "put", collection: "rules", doc: recurring },
+          ]),
+        );
+        const listed = unwrap(await adapter.list(familyId, "rules", { orderBy: "order_asc" })).docs;
+        expect(listed.map((r) => r.id)).toEqual([recurring.id, esselunga.id]);
+        expect(listed[1]!.conditions).toEqual({ match: "all", description: { op: "pattern", value: "*esselunga*" } });
+        expect(listed[0]!.actions).toEqual({ recurring: true });
+        expect(unwrap(await adapter.list(familyId, "rules", { where: { enabled: true } })).docs.map((r) => r.id)).toEqual([esselunga.id]);
+
+        // Riordino in un commit.
+        const moved = reorderRules(listed, 1, 0);
+        unwrap(await adapter.commit(familyId, moved.map((doc) => ({ type: "put" as const, collection: "rules" as const, doc }))));
+        const reordered = unwrap(await adapter.list(familyId, "rules", { orderBy: "order_asc" })).docs;
+        expect(reordered.map((r) => [r.id, r.order])).toEqual([
+          [esselunga.id, 0],
+          [recurring.id, 1],
+        ]);
+
+        const members = unwrap(await adapter.list(familyId, "members")).docs;
+        const ctx = {
+          family: unwrap(await adapter.membership.myFamilies()).find((f) => f.family.id === familyId)!.family,
+          categories: unwrap(await adapter.list(familyId, "categories")).docs,
+          payees: unwrap(await adapter.list(familyId, "payees")).docs,
+          accounts: unwrap(await adapter.list(familyId, "accounts")).docs,
+          activeMemberIds: new Set(members.filter((m) => m.leftAtMs === null).map((m) => m.id)),
+        };
+
+        // Import con l'aggancio delle regole.
+        const file = new TextEncoder().encode(
+          ["Data;Descrizione;Importo", "01/10/2026;PAGAMENTO POS ESSELUNGA 1234 MILANO;-45,30"].join("\n"),
+        );
+        const settings = guessSettings(file);
+        const read = readRows(decodeBytes(file, settings.encoding), settings);
+        if (!read.ok) throw new Error(JSON.stringify(read.error));
+        const plan = planImport({
+          ...ctx,
+          rows: read.value.rows,
+          account: ctx.accounts.find((a) => a.id === shared.id)!,
+          existing: [],
+          batchId: newId(),
+          profileId: null,
+          fileName: "prova.csv",
+          fileHash: fileHash(file),
+          nowMs: Date.now(),
+          newId,
+          hook: ruleImportHook(reordered, ctx),
+        });
+        for (const chunk of chunkOps(plan.ops)) unwrap(await adapter.commit(familyId, chunk));
+        const imported = unwrap(await adapter.list(familyId, "transactions", { where: { importBatchId: plan.batch!.id } })).docs;
+        expect(imported).toHaveLength(1);
+        expect(imported[0]).toMatchObject({
+          categoryId: category.id,
+          payeeId: payee.id,
+          split: { kind: "bp", source: "rule", shares: split.shares },
+          provenance: { category: "rule", payee: "rule", split: "rule" },
+          ruleIds: [esselunga.id],
+        });
+
+        // Applica ai vecchi: il movimento con categoria manuale cambia solo il destinatario.
+        const manual = expense({ description: "esselunga via roma", payeeId: null, provenance: { category: "manual", payee: "default", split: "manual" } });
+        const untouched = expense({ description: "altro" });
+        unwrap(await adapter.put(familyId, "transactions", manual));
+        unwrap(await adapter.put(familyId, "transactions", untouched));
+        const all = unwrap(await adapter.list(familyId, "transactions", { dateFrom: "2026-01-01", dateTo: "2026-12-31" })).docs;
+        const changes = planApplyRules(all, reordered, ctx);
+        expect(changes.map((c) => [c.before.id, c.fields])).toEqual([[manual.id, ["payee"]]]);
+        unwrap(await adapter.commit(familyId, changes.map((c) => ({ type: "put" as const, collection: "transactions" as const, doc: c.after }))));
+        const after = unwrap(await adapter.get(familyId, "transactions", manual.id));
+        expect(after).toMatchObject({ payeeId: payee.id, categoryId: category.id, split: manual.split, ruleIds: [esselunga.id] });
+        const again = unwrap(await adapter.list(familyId, "transactions", { dateFrom: "2026-01-01", dateTo: "2026-12-31" })).docs;
+        expect(planApplyRules(again, reordered, ctx)).toEqual([]);
+        unwrap(await adapter.remove(familyId, "rules", recurring.id));
+        expect(errorOf(await adapter.get(familyId, "rules", recurring.id)).code).toBe("not_found");
       });
     });
 

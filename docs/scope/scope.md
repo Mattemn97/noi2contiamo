@@ -25,7 +25,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 9 | Divisione spese tra i membri | Slice 5 | done |
 | 10 | Giroconti e saldo finale tra i membri | Slice 6 | done |
 | 11 | Import CSV con profili salvati | Slice 7 | done |
-| 12 | Regole automatiche | Slice 8 | planned |
+| 12 | Regole automatiche | Slice 8 | done |
 | 13 | Pagamenti ricorrenti e previsioni | Slice 9 | planned |
 | 14 | Dashboard di coppia | Slice 10 | planned |
 | 15 | Area personale | Slice 11 | planned |
@@ -195,10 +195,19 @@ code in `packages/core/src/import/` (con le fixture `fixtures/*.csv`), `apps/web
 
 ## Slice 8
 
-### 12. Regole automatiche · needs decision
+### 12. Regole automatiche · done
 Regole che assegnano categoria, destinatario e divisione tra i membri (con percentuale) in base a tipo, conto, destinatario o testo della descrizione. Valgono sia all'import sia all'inserimento manuale.
 **Done when:** una regola creata si applica ai nuovi movimenti e, a richiesta, a quelli vecchi; l'ordine delle regole decide chi vince; puoi creare una regola partendo da un movimento.
-- [ ] Design it (spec): `/architect regole automatiche`
+spec: [0007](../specs/0007-regole-automatiche/index.md). Scelte: per ogni campo vince la prima regola in ordine, condizioni sui valori originali, `pattern` con `*` e `?` senza regex, manuale mai sovrascritto (destinatario `import` sì), candidato ricorrente derivato da `ruleIds`, nessuna migrazione.
+code in `packages/core/src/rules/`, `apps/web/src/features/rules/`, `apps/web/src/features/transactions/{newTransaction.ts,NewTransactionPage.tsx}`, `apps/web/src/features/import/ImportPage.tsx`, `apps/web/src/routes.tsx` (`/altro/regole`), `server/src/noi2contiamo_server/{schemas,store}.py`, `packages/data/src/contract/suite.ts` (gruppo `rules`)
+- [x] Design it (spec): `/architect regole automatiche`
+- [x] Build it: `/develop regole automatiche`
+  - [x] `core`: motore (condizioni, `pattern` sicuro, `all`/`any`, azioni, prima vince per campo, manuale intoccabile), hook di import (AC-1..AC-8)
+  - [x] `core`: applica ai vecchi, anteprima, suggerimenti, crea da movimento, destinatario dalla descrizione, riordino (AC-9..AC-14)
+  - [x] Dati: `RuleDoc` nel server con riferimenti 422, contract suite gruppo `rules` (AC-15; firebase con lo stesso codice, non verificato: serve Java 21)
+  - [x] UI: `/altro/regole` con riordino ed editor con anteprima, regole nell'import e nel nuovo movimento, "Crea regola" (AC-8..AC-14)
+- [x] Verify it: verificato durante il build (`npm run check`, `npm run build`, `test:contract:http` 40 passati, `npm run local` con richieste HTTP vere: import della fixture Revolut con le regole → Esselunga categoria e destinatario `rule`, "To Bruno Bianchi" giroconto, Amazon con `recurring`; riferimento inesistente 422; "Applica ai vecchi" salta la categoria corretta a mano e una seconda applicazione dà zero cambi; SPA servita su `/altro/regole`)
+- [x] Test it: `packages/core/src/rules/rules.test.ts`, `apps/web/src/features/rules/rules.test.tsx` (lista, riordino, applica, crea da movimento, anteprima, suggerimento, axe), contract suite gruppo `rules`, `server/tests/test_regole.py`
 
 ## Slice 9
 

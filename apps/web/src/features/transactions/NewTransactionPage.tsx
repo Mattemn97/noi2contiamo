@@ -1,12 +1,15 @@
 // Nuovo movimento o modifica di uno esistente (spesa, entrata o giroconto); divisione dalla categoria o dalla famiglia.
 import {
   newId,
+  normalize,
   pickable,
+  suggestFromRules,
   sameShares,
   soloSplit,
   type Account,
   type Cents,
   type Member,
+  type RuleField,
   type Transaction,
 } from "@noi2contiamo/core";
 import { getLocalTimeZone, parseDate, today, type CalendarDate } from "@internationalized/date";
@@ -46,9 +49,11 @@ import {
   resolvePayee,
   type DraftError,
   type EntryType,
+  type RuleApplied,
   type SplitDraft,
 } from "./newTransaction";
 import { useDeleteTransaction } from "./useDeleteTransaction";
+import { useRuleEngine } from "../rules/useRules";
 
 const ERROR_KEYS: Readonly<Record<DraftError, MessageKey>> = {
   amount: "tx.error.amount",
@@ -240,6 +245,52 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
     .sort((a, b) => a.label.localeCompare(b.label, "it"));
   const payeeOptions = pickable(payees.data ?? []).map((p) => ({ id: p.id, label: p.name }));
 
+  // Regole automatiche (spec 0007, AC-9): solo per un'entrata o spesa nuova, solo sui campi non toccati.
+  const { engine } = useRuleEngine();
+  const [touched, setTouched] = useState<ReadonlySet<RuleField>>(new Set());
+  const touch = (field: RuleField) => {
+    setTouched((prev) => (prev.has(field) ? prev : new Set([...prev, field])));
+  };
+  const ruleAccount = (accounts.data ?? []).find((a) => a.id === accountId);
+  const typedPayeeId =
+    (payees.data ?? []).find((p) => normalize(payeeText) !== "" && p.normalizedName === normalize(payeeText))
+      ?.id ?? null;
+  const suggestion =
+    !existing && type !== "transfer" && engine
+      ? suggestFromRules(
+          {
+            type,
+            amountCents: amountCents ?? 0,
+            accountId: accountId ?? "",
+            payeeId: touched.has("payee") ? typedPayeeId : null,
+            payerMemberId: ruleAccount?.ownerMemberId ?? null,
+            description,
+            visibility: ruleAccount?.visibility ?? "shared",
+          },
+          engine.rules,
+          engine.ctx,
+          touched,
+        )
+      : null;
+  const ruleName = (id: string | undefined) => engine?.rules.find((r) => r.id === id)?.name ?? "";
+  const suggestedCategory = suggestion?.categoryId;
+  const suggestedPayee = suggestion?.payeeId
+    ? (payees.data ?? []).find((p) => p.id === suggestion.payeeId?.value)
+    : undefined;
+  const suggestedSplit = manualSplit ? undefined : suggestion?.split;
+  const shownCategoryId = suggestedCategory ? suggestedCategory.value : categoryId;
+  const shownPayeeText = suggestedPayee ? suggestedPayee.name : payeeText;
+  const ruleApplied: RuleApplied | undefined = suggestion
+    ? {
+        ...(suggestedCategory && { category: suggestedCategory.ruleId }),
+        ...(suggestedPayee && suggestion.payeeId && { payee: suggestion.payeeId.ruleId }),
+        ...(suggestedSplit && { split: { spec: suggestedSplit.value, ruleId: suggestedSplit.ruleId } }),
+        recurring: suggestion.recurring,
+      }
+    : undefined;
+  const ruleHint = (id: string | undefined) =>
+    id ? t("rules.suggested", { name: ruleName(id) }) : undefined;
+
   const save = useMutation({
     mutationFn: async () => {
       if (type === "transfer") {
@@ -255,17 +306,18 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
         unwrap(await adapter.put(family.id, "transactions", built.value));
         return true;
       }
-      const payee = resolvePayee(payeeText, payees.data ?? [], newId);
+      const payee = resolvePayee(shownPayeeText, payees.data ?? [], newId);
       const built = buildTransaction(
         {
           type,
           amountCents,
           date: date.toString(),
-          categoryId,
+          categoryId: shownCategoryId,
           accountId,
           description,
           payeeId: payee.payeeId,
           split: manualSplit,
+          ...(ruleApplied ? { rule: ruleApplied } : {}),
         },
         {
           id: newId(),
@@ -321,7 +373,17 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
   };
   const account = accounts.data.find((a) => a.id === accountId);
   const entryType: EntryType = type === "transfer" ? "expense" : type;
-  const autoSplit = previewAutoSplit({ type: entryType, categoryId, accountId }, draftCtx);
+  const autoSplit = previewAutoSplit(
+    {
+      type: entryType,
+      categoryId: shownCategoryId,
+      accountId,
+      ...(suggestedSplit
+        ? { rule: { split: { spec: suggestedSplit.value, ruleId: suggestedSplit.ruleId } } }
+        : {}),
+    },
+    draftCtx,
+  );
 
   const onSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
@@ -339,6 +401,7 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
             onChange={(next) => {
               setType(next);
               setCategoryId(null);
+              setTouched((prev) => new Set([...prev].filter((f) => f !== "category")));
             }}
             options={[
               { id: "expense", label: t("tx.type.expense") },
@@ -391,9 +454,13 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
               <Select
                 label={t("tx.category")}
                 options={categoryOptions}
-                value={categoryId}
+                value={shownCategoryId}
+                description={ruleHint(suggestedCategory?.ruleId)}
                 onChange={(key) => {
-                  setCategoryId(key === null ? null : String(key));
+                  const next = key === null ? null : String(key);
+                  if (next === shownCategoryId) return;
+                  touch("category");
+                  setCategoryId(next);
                 }}
                 isInvalid={errors.includes("category")}
                 errorMessage={t("tx.error.category")}
@@ -410,11 +477,15 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
               />
               <ComboBox
                 label={t("tx.payee")}
-                description={t("tx.payeeHelp")}
+                description={ruleHint(suggestion?.payeeId?.ruleId) ?? t("tx.payeeHelp")}
                 options={payeeOptions}
                 allowsCustomValue
-                inputValue={payeeText}
-                onInputChange={setPayeeText}
+                inputValue={shownPayeeText}
+                onInputChange={(text) => {
+                  if (text === shownPayeeText) return;
+                  touch("payee");
+                  setPayeeText(text);
+                }}
               />
               <TextField
                 label={t("tx.description")}
@@ -425,7 +496,10 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
               <SplitSection
                 members={members.data}
                 manual={manualSplit}
-                onManual={setManualSplit}
+                onManual={(next) => {
+                  if (next) touch("split");
+                  setManualSplit(next);
+                }}
                 auto={autoSplit}
                 autoKey={autoSplit ? autoSourceKey(autoSplit, entryType, account) : "split.source.default"}
                 isPrivate={account?.visibility === "private"}
@@ -449,6 +523,14 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
             <Button variant="ghost" onPress={() => void navigate(back)}>
               {t("common.cancel")}
             </Button>
+            {existing && existing.type !== "transfer" ? (
+              <Button
+                variant="secondary"
+                onPress={() => void navigate(`/altro/regole/nuova?movimento=${existing.id}`)}
+              >
+                {t("rules.fromTransaction")}
+              </Button>
+            ) : null}
             {existing ? (
               <Button
                 variant="danger"

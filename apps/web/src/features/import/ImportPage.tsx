@@ -11,6 +11,7 @@ import {
   newId,
   pickable,
   planImport,
+  ruleImportHook,
   planWindow,
   readRows,
   settingsOf,
@@ -31,6 +32,7 @@ import { useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAdapter } from "../../data/AdapterContext";
 import { keys, unwrap, useCollection, useTransactionsInRange } from "../../data/queries";
+import { useRuleEngine } from "../rules/useRules";
 import { t } from "../../i18n/it";
 import {
   Amount,
@@ -586,6 +588,9 @@ function PreviewStep({
   const accounts = useCollection(family.id, "accounts");
   const categories = useCollection(family.id, "categories");
   const payees = useCollection(family.id, "payees");
+  const rules = useRuleEngine();
+  const engine = rules.engine;
+  const hook = useMemo(() => (engine ? ruleImportHook(engine.rules, engine.ctx) : null), [engine]);
   const read = useMemo(
     () => readRows(decodeBytes(file.bytes, settings.encoding), settings),
     [file, settings],
@@ -601,7 +606,7 @@ function PreviewStep({
 
   const account = accounts.data?.find((a) => a.id === accountId);
   const plan = useMemo(() => {
-    if (!read.ok || !account || !accounts.data || !categories.data || !payees.data || !existing.data)
+    if (!read.ok || !account || !accounts.data || !categories.data || !payees.data || !existing.data || !hook)
       return null;
     return planImport({
       rows: read.value.rows,
@@ -618,8 +623,10 @@ function PreviewStep({
       nowMs: Date.now(),
       newId,
       declinedTransfers: declined,
+      hook,
     });
   }, [
+    hook,
     read,
     account,
     accounts.data,
@@ -657,6 +664,7 @@ function PreviewStep({
         nowMs: Date.now(),
         newId,
         declinedTransfers: declined,
+        ...(hook ? { hook } : {}),
         ...(doc ? { profile: doc } : {}),
       });
       for (const chunk of chunkOps<CommitOp>(final.ops)) unwrap(await adapter.commit(family.id, chunk));
@@ -687,7 +695,7 @@ function PreviewStep({
         {t("import.error.rows")}
       </p>
     );
-  if (existing.isError || accounts.isError || categories.isError || payees.isError)
+  if (existing.isError || accounts.isError || categories.isError || payees.isError || rules.isError)
     return <ErrorState onRetry={() => void existing.refetch()} />;
   if (!plan || !account) return <Skeleton lines={6} />;
 
