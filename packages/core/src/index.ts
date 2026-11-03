@@ -1,4 +1,5 @@
 // Dominio puro: niente IO, niente React, niente SDK.
+export * from "./division";
 export * from "./fingerprint";
 export * from "./ids";
 export * from "./model/catalog";

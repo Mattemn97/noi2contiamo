@@ -28,6 +28,7 @@ from .schemas import (
     PutOp,
     Registration,
     SessionOut,
+    SplitSpec,
     UserOut,
 )
 from .scope import active_member
@@ -196,6 +197,28 @@ def create_family(body: CreateFamily, user: CurrentUser, db: Db) -> CreatedFamil
         db.add(Category(**(values | audit), family_id=family_id))
     db.commit()
     return CreatedFamily(family_id=str(family_id))
+
+
+@router.put("/families/{family_id}/default-split", status_code=status.HTTP_204_NO_CONTENT)
+def set_default_split(family_id: uuid.UUID, body: SplitSpec, user: CurrentUser, db: Db) -> None:
+    """Divisione predefinita della famiglia (spec 0004, AC-7): ogni membro attivo, chiavi = membri attivi."""
+    me = member_of(db, family_id, user)
+    active = {
+        str(m)
+        for m in db.scalars(
+            select(Member.id).where(Member.family_id == family_id, Member.left_at_ms.is_(None))
+        )
+    }
+    strangers = [m for m in body.shares if m not in active]
+    if strangers:
+        raise invalid(f"{strangers[0]} non è un membro attivo della famiglia", "defaultSplit")
+    family = db.get(Family, family_id)
+    if family is None:
+        raise ApiError("not_found")
+    family.default_split = body.model_dump()
+    family.updated_at_ms = now_ms()
+    family.updated_by_member_id = me.id
+    db.commit()
 
 
 # ---- Inviti e uscita ----------------------------------------------------------------------

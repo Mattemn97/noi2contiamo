@@ -53,6 +53,7 @@ import { categoryLabel } from "../catalog/CategoriesPage";
 import { useFamily } from "../guards";
 import { filterOf, parseRegister, serializeRegister, type RegisterState } from "./registerUrl";
 import styles from "./register.module.css";
+import { splitText } from "../split/SplitEditor";
 import { useDeleteTransaction } from "./useDeleteTransaction";
 
 /** Data di calendario `YYYY-MM-DD` come giorno locale (niente spostamenti di fuso). */
@@ -225,6 +226,13 @@ export function TransactionsPage() {
         sortable: false,
         hideOnMobile: true,
         value: (tx) => labelOf("member", tx.payerMemberId, names),
+      },
+      {
+        id: "split",
+        header: t("tx.col.split"),
+        sortable: false,
+        hideOnMobile: true,
+        value: (tx) => splitText(tx, (id) => names.member.get(id) ?? ""),
       },
       {
         id: "amount",

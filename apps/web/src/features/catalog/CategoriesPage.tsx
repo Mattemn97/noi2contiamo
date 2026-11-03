@@ -1,5 +1,5 @@
 // Categorie (feature 7): entrate e uscite, un livello di sottocategorie, colore, divisione predefinita salvata.
-import { newId, type BasisPoints, type Category, type Member } from "@noi2contiamo/core";
+import { categorySplit, newId, type BasisPoints, type Category, type Member } from "@noi2contiamo/core";
 import { useState, type SyntheticEvent } from "react";
 import { useCollection } from "../../data/queries";
 import { t } from "../../i18n/it";
@@ -11,7 +11,6 @@ import {
   EmptyState,
   ErrorState,
   PageHeader,
-  PercentField,
   SegmentedControl,
   Select,
   Skeleton,
@@ -23,6 +22,8 @@ import { cx } from "../../ui/cx";
 import styles from "../layout.module.css";
 import { useFamily } from "../guards";
 import list from "./catalog.module.css";
+import { ReapplyButton } from "../split/ReapplyButton";
+import { SplitEditor, type SplitDraft } from "../split/SplitEditor";
 import { ArchiveButton, saveErrorText, useSave } from "./shared";
 
 type Kind = Category["kind"];
@@ -77,13 +78,14 @@ function CategoryForm({
   const [parentId, setParentId] = useState<string>(category?.parentId ?? NONE);
   const [color, setColor] = useState<string>(category?.color ?? NONE);
   const [ownSplit, setOwnSplit] = useState(category?.defaultSplit != null);
-  const [shares, setShares] = useState<Record<string, BasisPoints | null>>(() =>
-    Object.fromEntries(
-      members.map((m) => [m.id, (category?.defaultSplit?.shares[m.id] ?? null) as BasisPoints | null]),
-    ),
-  );
+  const [splitDraft, setSplitDraft] = useState<SplitDraft>(() => ({
+    kind: "bp",
+    shares: Object.fromEntries(members.map((m) => [m.id, category?.defaultSplit?.shares[m.id] ?? null])),
+  }));
   const [problem, setProblem] = useState<"name" | "split" | null>(null);
   const save = useSave(familyId, "categories", onDone);
+  const chosenParent = all.find((c) => c.id === parentId);
+  const inheritFrom = chosenParent?.defaultSplit ? chosenParent : null;
   const hasChildren = category !== null && all.some((c) => c.parentId === category.id);
   const parents = all.filter(
     (c) =>
@@ -99,7 +101,7 @@ function CategoryForm({
       setProblem("name");
       return;
     }
-    const split = ownSplit ? splitFromShares(shares) : null;
+    const split = ownSplit ? splitFromShares(splitDraft.shares as Record<string, BasisPoints | null>) : null;
     if (split === "invalid") {
       setProblem("split");
       return;
@@ -149,37 +151,33 @@ function CategoryForm({
           setColor(key === null ? NONE : String(key));
         }}
       />
-      {kind === "expense" ? (
-        <fieldset className={cx(styles.stack)}>
-          <legend>{t("categories.split")}</legend>
-          <SegmentedControl<"family" | "own">
-            label={t("categories.split")}
-            value={ownSplit ? "own" : "family"}
-            onChange={(next) => {
-              setOwnSplit(next === "own");
-            }}
-            options={[
-              { id: "family", label: t("categories.splitFamily") },
-              { id: "own", label: t("categories.splitOwn") },
-            ]}
-          />
-          {ownSplit ? (
-            <>
-              <p className={cx(styles.muted)}>{t("categories.splitHelp")}</p>
-              {members.map((m) => (
-                <PercentField
-                  key={m.id}
-                  label={t("categories.splitShare", { name: m.displayName })}
-                  value={shares[m.id] ?? null}
-                  onChange={(value) => {
-                    setShares((prev) => ({ ...prev, [m.id]: value }));
-                  }}
-                />
-              ))}
-            </>
-          ) : null}
-        </fieldset>
-      ) : null}
+      <fieldset className={cx(styles.stack)}>
+        <legend>{t("categories.split")}</legend>
+        <SegmentedControl<"family" | "own">
+          label={t("categories.split")}
+          value={ownSplit ? "own" : "family"}
+          onChange={(next) => {
+            setOwnSplit(next === "own");
+          }}
+          options={[
+            {
+              id: "family",
+              label: inheritFrom
+                ? t("categories.splitFamilyInherit", { name: inheritFrom.name })
+                : t("categories.splitFamily"),
+            },
+            { id: "own", label: t("categories.splitOwn") },
+          ]}
+        />
+        {ownSplit ? (
+          <>
+            <p className={cx(styles.muted)}>{t("categories.splitHelp")}</p>
+            <SplitEditor members={members} value={splitDraft} onChange={setSplitDraft} />
+          </>
+        ) : inheritFrom ? (
+          <p className={cx(styles.muted)}>{t("categories.splitInheritHelp", { name: inheritFrom.name })}</p>
+        ) : null}
+      </fieldset>
       {problem === "split" || save.isError ? (
         <p role="alert" className={cx(styles.error)}>
           {problem === "split" ? t("categories.error.split") : saveErrorText(save.error)}
@@ -241,6 +239,9 @@ function CategoryList({
             >
               {t("catalog.edit")}
             </Button>
+            {category.archivedAtMs === null && categorySplit(category.id, all) ? (
+              <ReapplyButton familyId={familyId} categoryId={category.id} />
+            ) : null}
             <ArchiveButton familyId={familyId} collection="categories" doc={category} />
           </div>
         </li>

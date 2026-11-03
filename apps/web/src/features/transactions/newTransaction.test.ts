@@ -123,7 +123,7 @@ describe("buildTransaction su un movimento esistente", () => {
 
   it("tiene id, note, divisione manuale e chi ha pagato; niente audit nel documento", () => {
     const edited = buildTransaction(
-      { ...draft, amountCents: 5000, categoryId: rent.id },
+      { ...draft, amountCents: 5000, categoryId: rent.id, split: draftOf(tx)?.split ?? null },
       { ...ctx, existing: tx },
     );
     if (!edited.ok) throw new Error("atteso ok");
@@ -139,7 +139,7 @@ describe("buildTransaction su un movimento esistente", () => {
     expect(edited.value).not.toHaveProperty("createdAtMs");
   });
 
-  it("cambiare conto rifà visibilità e chi ha pagato; una divisione non manuale segue la nuova categoria", () => {
+  it("cambiare conto rifà visibilità e chi ha pagato; sul conto privato tutto al proprietario", () => {
     const auto = {
       ...tx,
       split: { kind: "bp" as const, source: "default" as const, shares: { [ownerId]: 10000 } },
@@ -153,7 +153,97 @@ describe("buildTransaction su un movimento esistente", () => {
       visibility: "private",
       ownerMemberId: ownerId,
       payerMemberId: ownerId,
-      split: { source: "category" },
+      split: { kind: "bp", source: "default", shares: { [ownerId]: 10000 } },
+    });
+  });
+
+  const auto = {
+    ...tx,
+    split: {
+      kind: "bp" as const,
+      source: "default" as const,
+      shares: { [ownerId]: 5000, [partnerId]: 5000 },
+    },
+    provenance: { ...tx.provenance, split: "default" as const },
+  };
+
+  it("fotografia: stessa categoria e conto tengono la divisione salvata, un'altra categoria la rifà (AC-5)", () => {
+    const same = buildTransaction({ ...draft, amountCents: 999 }, { ...ctx, existing: auto });
+    expect(same.ok && same.value.split).toEqual(auto.split);
+    const moved = buildTransaction({ ...draft, categoryId: rent.id }, { ...ctx, existing: auto });
+    expect(moved.ok && moved.value.split).toEqual({
+      kind: "bp",
+      source: "category",
+      shares: { [ownerId]: 10000 },
+    });
+  });
+
+  it("tornare automatica da una manuale risolve di nuovo", () => {
+    const back = buildTransaction({ ...draft, split: null }, { ...ctx, existing: tx });
+    expect(back.ok && back.value.split?.source).toBe("default");
+    expect(back.ok && back.value.provenance?.split).toBe("default");
+  });
+});
+
+describe("divisione a mano nel modulo (AC-3, AC-4)", () => {
+  const partnerId = newId();
+  const members = ctx;
+
+  it("in importo deve sommare all'importo; le quote a zero si tolgono", () => {
+    const ok = buildTransaction(
+      { ...draft, split: { kind: "cents", shares: { [ownerId]: 4000, [partnerId]: 250 } } },
+      members,
+    );
+    expect(ok.ok && ok.value.split).toEqual({
+      kind: "cents",
+      source: "manual",
+      shares: { [ownerId]: 4000, [partnerId]: 250 },
+    });
+    expect(ok.ok && ok.value.provenance?.split).toBe("manual");
+    expect(
+      buildTransaction(
+        { ...draft, split: { kind: "cents", shares: { [ownerId]: 4000, [partnerId]: 249 } } },
+        members,
+      ),
+    ).toEqual({ ok: false, error: ["split"] });
+    const zero = buildTransaction(
+      { ...draft, split: { kind: "bp", shares: { [ownerId]: 10000, [partnerId]: 0 } } },
+      members,
+    );
+    expect(zero.ok && zero.value.split?.shares).toEqual({ [ownerId]: 10000 });
+  });
+
+  it("in percentuale deve fare 100%", () => {
+    expect(
+      buildTransaction(
+        { ...draft, split: { kind: "bp", shares: { [ownerId]: 6000, [partnerId]: null } } },
+        members,
+      ),
+    ).toEqual({ ok: false, error: ["split"] });
+  });
+
+  it("un movimento privato ignora la divisione a mano", () => {
+    const built = buildTransaction(
+      { ...draft, accountId: personal.id, split: { kind: "bp", shares: { [partnerId]: 10000 } } },
+      members,
+    );
+    expect(built.ok && built.value.split).toEqual({
+      kind: "bp",
+      source: "default",
+      shares: { [ownerId]: 10000 },
+    });
+  });
+
+  it("un'entrata su un conto personale condiviso va al proprietario", () => {
+    const mineShared = { ...shared, id: newId(), ownerMemberId: partnerId };
+    const built = buildTransaction(
+      { ...draft, type: "income", categoryId: salary.id, accountId: mineShared.id },
+      { ...members, accounts: [...ctx.accounts, mineShared] },
+    );
+    expect(built.ok && built.value.split).toEqual({
+      kind: "bp",
+      source: "default",
+      shares: { [partnerId]: 10000 },
     });
   });
 });

@@ -1,6 +1,6 @@
 // Famiglia e inviti (feature 6): membri e ruoli, persone senza account, inviti con codice o link,
 // cambio di famiglia attiva e uscita. Le azioni di gestione si vedono solo al proprietario.
-import { newId, type Invite, type Member } from "@noi2contiamo/core";
+import { checkSplit, newId, type Invite, type Member } from "@noi2contiamo/core";
 import type { FamilySummary } from "@noi2contiamo/data";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type SyntheticEvent } from "react";
@@ -26,6 +26,8 @@ import { cx } from "../../ui/cx";
 import styles from "../layout.module.css";
 import { useFamily } from "../guards";
 import { inviteLink, storeActiveFamily } from "./invite";
+import { ReapplyButton } from "../split/ReapplyButton";
+import { SplitEditor, type SplitDraft } from "../split/SplitEditor";
 import { JoinForm } from "./JoinForm";
 import page from "./FamilyPage.module.css";
 
@@ -356,6 +358,55 @@ function LeaveCard({ current }: { current: FamilySummary }) {
   );
 }
 
+/** Divisione predefinita della famiglia (spec 0004, AC-7): ogni membro attivo la cambia. */
+function DefaultSplitCard({ current, active }: { current: FamilySummary; active: readonly Member[] }) {
+  const adapter = useAdapter();
+  const toast = useToast();
+  const familyId = current.family.id;
+  const [draft, setDraft] = useState<SplitDraft>(() => ({
+    kind: "bp",
+    shares: Object.fromEntries(active.map((m) => [m.id, current.family.defaultSplit.shares[m.id] ?? null])),
+  }));
+  const [invalid, setInvalid] = useState(false);
+  const save = useFamilyMutation(
+    async (split: { kind: "bp"; shares: Record<string, number> }) => {
+      unwrap(await adapter.membership.setDefaultSplit(familyId, split));
+    },
+    () => {
+      toast.show({ message: t("family.split.saved") });
+    },
+  );
+  const onSubmit = (event: SyntheticEvent) => {
+    event.preventDefault();
+    const checked = checkSplit(draft, 0);
+    if (!checked.ok) {
+      setInvalid(true);
+      return;
+    }
+    setInvalid(false);
+    save.mutate({ kind: "bp", shares: checked.value.shares });
+  };
+  return (
+    <Card title={t("family.split.title")} as="section">
+      <form className={cx(styles.form)} onSubmit={onSubmit} noValidate>
+        <p className={cx(styles.muted)}>{t("family.split.help")}</p>
+        <SplitEditor members={active} value={draft} onChange={setDraft} />
+        {invalid || save.isError ? (
+          <p role="alert" className={cx(styles.error)}>
+            {t("family.split.error")}
+          </p>
+        ) : null}
+        <div className={cx(styles.actions)}>
+          <Button type="submit" isPending={save.isPending}>
+            {t("family.split.save")}
+          </Button>
+          <ReapplyButton familyId={familyId} />
+        </div>
+      </form>
+    </Card>
+  );
+}
+
 export function FamilyPage() {
   const me = useFamily();
   const members = useCollection(me.family.id, "members");
@@ -376,6 +427,7 @@ export function FamilyPage() {
             ))}
           </ul>
         </Card>
+        <DefaultSplitCard current={me} active={active} />
         {isOwner ? <InviteCard familyId={me.family.id} members={active} invites={invites.data} /> : null}
         {isOwner ? <AddPlaceholder familyId={me.family.id} /> : null}
         <SwitchFamily current={me} />

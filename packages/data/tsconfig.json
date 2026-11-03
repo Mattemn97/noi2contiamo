@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": [],
+    "rootDir": "src",
+    "outDir": "../../node_modules/.tsbuild/data",
+    "tsBuildInfoFile": "../../node_modules/.tsbuild/data.tsbuildinfo"
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/contract"],
+  "references": [{ "path": "../core" }]
+}

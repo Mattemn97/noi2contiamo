@@ -1,0 +1,17 @@
+{
+  "name": "@noi2contiamo/data",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./memory": "./src/memory.ts",
+    "./firebase": "./src/firebase.ts",
+    "./http": "./src/http.ts"
+  },
+  "dependencies": {
+    "@noi2contiamo/core": "*",
+    "firebase": "~13.2.0",
+    "openapi-fetch": "^0.17.0"
+  }
+}

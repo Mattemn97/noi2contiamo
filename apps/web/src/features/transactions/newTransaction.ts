@@ -3,11 +3,14 @@
 import {
   AUDIT_KEYS,
   accountDefaults,
+  autoSplit,
+  checkSplit,
   err,
   normalize,
   ok,
   payeeFromName,
   resolveSplit,
+  type SplitIssue,
   type Account,
   type Category,
   type Family,
@@ -29,9 +32,17 @@ export interface TransactionDraft {
   readonly description: string;
   /** Già risolto con `resolvePayee`; null = nessun destinatario. */
   readonly payeeId?: string | null;
+  /** Divisione scritta a mano nell'editor; assente o null = automatica (spec 0004, AC-1). */
+  readonly split?: SplitDraft | null;
 }
 
-export type DraftError = "amount" | "category" | "account";
+/** Lo stato dell'editor della divisione: quote ancora da completare (null = campo vuoto). */
+export interface SplitDraft {
+  readonly kind: "bp" | "cents";
+  readonly shares: Readonly<Record<string, number | null>>;
+}
+
+export type DraftError = "amount" | "category" | "account" | "split";
 
 export interface DraftContext {
   readonly id: string;
@@ -53,10 +64,11 @@ export function draftOf(tx: Transaction): TransactionDraft | null {
     accountId: tx.accountId,
     description: tx.description,
     payeeId: tx.payeeId,
+    split: tx.split?.source === "manual" ? { kind: tx.split.kind, shares: { ...tx.split.shares } } : null,
   };
 }
 
-function withoutAudit(tx: Transaction): WriteDocOf<"transactions"> {
+export function withoutAudit(tx: Transaction): WriteDocOf<"transactions"> {
   const audit: ReadonlySet<string> = new Set(AUDIT_KEYS);
   return Object.fromEntries(
     Object.entries(tx).filter(([key]) => !audit.has(key)),
@@ -78,12 +90,16 @@ export function buildTransaction(
 
   const existing = ctx.existing;
   const categoryChanged = existing?.categoryId !== category.id;
-  // Una divisione scritta a mano resta; le altre seguono la categoria (nuova) o la famiglia.
-  const split =
-    existing?.split && existing.split.source === "manual" && existing.split.kind === "bp"
-      ? existing.split
-      : resolveSplit({ category: category.defaultSplit, family: ctx.family.defaultSplit });
   const defaults = accountDefaults(account);
+  const decided = splitFor(draft, {
+    ...ctx,
+    amountCents: amount,
+    categoryId: category.id,
+    accountId: account.id,
+    defaults,
+  });
+  if (!decided.ok) return err(["split"]);
+  const split = decided.value;
   const base = existing ? withoutAudit(existing) : null;
   return ok({
     ...base,
@@ -100,14 +116,77 @@ export function buildTransaction(
       ? {
           category: categoryChanged ? "manual" : existing.provenance.category,
           payee: existing.payeeId !== (draft.payeeId ?? null) ? "manual" : existing.provenance.payee,
-          split: split === existing.split ? existing.provenance.split : "default",
+          split:
+            split.source === "manual"
+              ? "manual"
+              : split === existing.split
+                ? existing.provenance.split
+                : "default",
         }
-      : { category: "manual", payee: "manual", split: "default" },
+      : { category: "manual", payee: "manual", split: split.source === "manual" ? "manual" : "default" },
     ...defaults,
     // Chi ha pagato resta lo stesso se il conto non cambia.
     payerMemberId:
       existing && existing.accountId === account.id ? existing.payerMemberId : defaults.payerMemberId,
   });
+}
+
+/**
+ * La divisione da salvare (spec 0004): privato al 100% sul proprietario; poi quella scritta a mano; in
+ * automatico la fotografia resta se categoria e conto non cambiano, altrimenti si risolve di nuovo.
+ */
+function splitFor(
+  draft: TransactionDraft,
+  ctx: DraftContext & {
+    readonly amountCents: number;
+    readonly categoryId: string;
+    readonly accountId: string;
+    readonly defaults: ReturnType<typeof accountDefaults>;
+  },
+): Result<NonNullable<Transaction["split"]>, SplitIssue> {
+  const { defaults, existing } = ctx;
+  if (defaults.visibility === "private")
+    return ok(resolveSplit({ privateOwner: defaults.ownerMemberId, family: ctx.family.defaultSplit }));
+  if (draft.split) {
+    const checked = checkSplit(draft.split, ctx.amountCents);
+    return checked.ok
+      ? ok(resolveSplit({ manual: checked.value, family: ctx.family.defaultSplit }))
+      : checked;
+  }
+  if (
+    existing?.split &&
+    existing.split.source !== "manual" &&
+    existing.type === draft.type &&
+    existing.categoryId === ctx.categoryId &&
+    existing.accountId === ctx.accountId
+  )
+    return ok(existing.split);
+  return ok(
+    autoSplit(
+      { type: draft.type, categoryId: ctx.categoryId, accountId: ctx.accountId, ...defaults },
+      { family: ctx.family, categories: ctx.categories, accounts: ctx.accounts },
+    ),
+  );
+}
+
+/** La divisione che il modulo mostrerebbe in automatico (anteprima, nessun controllo). */
+export function previewAutoSplit(
+  draft: Pick<TransactionDraft, "type" | "categoryId" | "accountId">,
+  ctx: DraftContext,
+): NonNullable<Transaction["split"]> | null {
+  const account = ctx.accounts.find((a) => a.id === draft.accountId);
+  if (!account) return null;
+  const built = splitFor(
+    { ...draft, amountCents: 0, date: "", description: "", split: null },
+    {
+      ...ctx,
+      amountCents: 0,
+      categoryId: draft.categoryId ?? "",
+      accountId: account.id,
+      defaults: accountDefaults(account),
+    },
+  );
+  return built.ok ? built.value : null;
 }
 
 /**

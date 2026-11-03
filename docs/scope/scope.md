@@ -22,7 +22,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 6 | Inviti ai membri della famiglia | Slice 2 | done |
 | 7 | Conti, categorie e destinatari | Slice 3 | done |
 | 8 | Registro movimenti con filtri e suddivisioni | Slice 4 | done |
-| 9 | Divisione spese tra i membri | Slice 5 | planned |
+| 9 | Divisione spese tra i membri | Slice 5 | done |
 | 10 | Giroconti e saldo finale tra i membri | Slice 6 | planned |
 | 11 | Import CSV con profili salvati | Slice 7 | planned |
 | 12 | Regole automatiche | Slice 8 | planned |
@@ -149,10 +149,18 @@ code in `packages/core/src/register.ts`, `apps/web/src/features/transactions/` (
 
 ## Slice 5
 
-### 9. Divisione spese tra i membri · needs decision
+### 9. Divisione spese tra i membri · done
 Ogni spesa può essere divisa tra i membri: in automatico secondo l'impostazione della categoria (es. affitto 60/40) oppure a mano sul singolo movimento, in percentuale o importo.
 **Done when:** una spesa senza indicazioni usa la divisione della sua categoria; una divisione manuale la sovrascrive; le quote sommano sempre al 100% e al centesimo.
-- [ ] Design it (spec): `/architect divisione spese`
+spec: [0004](../specs/0004-divisione-spese/index.md)
+code in `packages/core/src/{split,division}.ts`, `apps/web/src/features/split/`, `apps/web/src/features/transactions/{newTransaction.ts,NewTransactionPage.tsx,TransactionsPage.tsx}`, `apps/web/src/features/catalog/CategoriesPage.tsx`, `apps/web/src/features/family/FamilyPage.tsx`, `packages/data/src/{index,memory,http,firebase}.ts`, `server/src/noi2contiamo_server/api.py` (`PUT /families/{id}/default-split`), `firebase/firestore.rules`
+- [x] Design it (spec): `/architect divisione spese`
+- [x] Build it: `/develop divisione spese`
+  - [x] `core`: precedenza (privato > manuale > regola > categoria e principale > proprietario per le entrate > famiglia), `checkSplit`, cambio di modalità, `reapplySplits` (AC-1, AC-2, AC-3, AC-5, AC-6)
+  - [x] Dati: `membership.setDefaultSplit` su memory, http (route server) e firebase (adapter e regola, non verificato: serve Java 21), contract suite gruppo `split` (AC-7)
+  - [x] UI: editor nel movimento (percentuale o importo, 50/50, "Tutto a ..."), divisione della famiglia in `/altro/famiglia`, divisione delle categorie anche per le entrate, "Riapplica ai movimenti", colonna "Divisione" nel registro (AC-4, AC-6, AC-7, AC-8, AC-9)
+- [x] Verify it: verificato durante il build (`npm run check`, `npm run build`, `test:contract:http` 36 passati, `npm run local` con richieste HTTP vere: sottocategoria che eredita 60/40 → 60,01/40,00 €, famiglia 50/50 → 50,01/50,00 €, entrata su conto di Bruno → 100% Bruno, manuale in centesimi salvata, centesimi sbagliati e chiave non membro rifiutati con `invalid`)
+- [x] Test it: `packages/core/src/division.test.ts`, `apps/web/src/features/split/split.test.tsx`, `apps/web/src/features/transactions/newTransaction.test.ts`, contract suite gruppo `split`, `server/tests/test_divisione.py`
 
 ## Slice 6
 

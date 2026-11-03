@@ -73,6 +73,11 @@ service cloud.firestore {
       allow update: if isOwner(f)
         && !changed().hasAny(['createdByUserId', 'currency'])
         && data().updatedByMemberId == me(f);
+      // Divisione predefinita (spec 0004): ogni membro; somma e membri attivi li controlla core.
+      allow update: if isMember(f)
+        && changed().hasOnly(['defaultSplit', 'updatedAtMs', 'updatedByMemberId'])
+        && data().defaultSplit.kind == 'bp'
+        && data().updatedByMemberId == me(f);
 
       function invite(token) { return get(/databases/$(database)/documents/families/$(f)/invites/$(get(tokenPath(token)).data.inviteId)).data; }
       function joiningWith(token) {

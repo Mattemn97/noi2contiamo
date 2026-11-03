@@ -1,5 +1,14 @@
 // Nuovo movimento o modifica di uno esistente (spesa o entrata); divisione dalla categoria o dalla famiglia.
-import { newId, pickable, type Cents, type Transaction } from "@noi2contiamo/core";
+import {
+  newId,
+  pickable,
+  sameShares,
+  soloSplit,
+  type Account,
+  type Cents,
+  type Member,
+  type Transaction,
+} from "@noi2contiamo/core";
 import { getLocalTimeZone, parseDate, today, type CalendarDate } from "@internationalized/date";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type SyntheticEvent } from "react";
@@ -27,14 +36,121 @@ import { cx } from "../../ui/cx";
 import styles from "../layout.module.css";
 import { useFamily } from "../guards";
 import { categoryLabel } from "../catalog/CategoriesPage";
-import { buildTransaction, draftOf, resolvePayee, type DraftError, type EntryType } from "./newTransaction";
+import { amountsText, splitMembers, SplitEditor } from "../split/SplitEditor";
+import {
+  buildTransaction,
+  draftOf,
+  previewAutoSplit,
+  resolvePayee,
+  type DraftError,
+  type EntryType,
+  type SplitDraft,
+} from "./newTransaction";
 import { useDeleteTransaction } from "./useDeleteTransaction";
 
 const ERROR_KEYS: Readonly<Record<DraftError, MessageKey>> = {
   amount: "tx.error.amount",
   category: "tx.error.category",
   account: "tx.error.account",
+  split: "tx.error.split",
 };
+
+type SplitSourceKey =
+  "split.source.category" | "split.source.default" | "split.source.owner" | "split.source.rule";
+
+/** Da dove viene la divisione automatica, per la frase "In automatico: ...". */
+export function autoSourceKey(
+  split: NonNullable<Transaction["split"]>,
+  type: EntryType,
+  account: Pick<Account, "ownerMemberId"> | undefined,
+): SplitSourceKey {
+  if (split.source === "category") return "split.source.category";
+  if (split.source === "rule") return "split.source.rule";
+  const owner = account?.ownerMemberId;
+  if (type === "income" && owner && sameShares(split, soloSplit(owner))) return "split.source.owner";
+  return "split.source.default";
+}
+
+function SplitSection({
+  members,
+  manual,
+  onManual,
+  auto,
+  autoKey,
+  isPrivate,
+  amountCents,
+  invalid,
+}: {
+  readonly members: readonly Member[];
+  readonly manual: SplitDraft | null;
+  readonly onManual: (next: SplitDraft | null) => void;
+  readonly auto: NonNullable<Transaction["split"]> | null;
+  readonly autoKey: SplitSourceKey;
+  readonly isPrivate: boolean;
+  readonly amountCents: number | null;
+  readonly invalid: boolean;
+}) {
+  const nameOf = (id: string) => members.find((m) => m.id === id)?.displayName ?? id;
+  return (
+    <fieldset className={cx(styles.stack)}>
+      <legend>{t("split.title")}</legend>
+      {isPrivate ? (
+        <p className={cx(styles.muted)}>{t("split.private")}</p>
+      ) : manual ? (
+        <>
+          <SplitEditor
+            members={members}
+            value={manual}
+            onChange={onManual}
+            amountCents={amountCents}
+            allowCents
+          />
+          {invalid ? (
+            <p role="alert" className={cx(styles.error)}>
+              {t("tx.error.split")}
+            </p>
+          ) : null}
+          <div className={cx(styles.actions)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onPress={() => {
+                onManual(null);
+              }}
+            >
+              {t("split.backToAuto")}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className={cx(styles.muted)}>
+            {t("split.auto", { source: t(autoKey) })}
+            {auto && amountCents !== null && amountCents > 0
+              ? ` ${amountsText(amountCents, auto, nameOf)}`
+              : ""}
+          </p>
+          <div className={cx(styles.actions)}>
+            <Button
+              size="sm"
+              variant="secondary"
+              onPress={() => {
+                const start: SplitDraft = auto ?? { kind: "bp", shares: {} };
+                const rows = splitMembers(members, start.shares);
+                onManual({
+                  kind: start.kind,
+                  shares: Object.fromEntries(rows.map((m) => [m.id, start.shares[m.id] ?? 0])),
+                });
+              }}
+            >
+              {t("split.edit")}
+            </Button>
+          </div>
+        </>
+      )}
+    </fieldset>
+  );
+}
 
 /** Dove tornare dopo salva, annulla o elimina: il registro con i filtri da cui si è partiti. */
 export function backTo(state: unknown): string {
@@ -89,6 +205,7 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
   const accounts = useCollection(family.id, "accounts");
   const categories = useCollection(family.id, "categories");
   const payees = useCollection(family.id, "payees");
+  const members = useCollection(family.id, "members");
 
   const initial = existing ? draftOf(existing) : null;
   const [type, setType] = useState<EntryType>(initial?.type ?? "expense");
@@ -104,6 +221,7 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
   const [payeeText, setPayeeText] = useState(
     () => (payees.data ?? []).find((p) => p.id === initial?.payeeId)?.name ?? "",
   );
+  const [manualSplit, setManualSplit] = useState<SplitDraft | null>(initial?.split ?? null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Il registro passa i suoi filtri nello state: si torna lì com'era.
   const location = useLocation();
@@ -132,6 +250,7 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
           accountId,
           description,
           payeeId: payee.payeeId,
+          split: manualSplit,
         },
         {
           id: newId(),
@@ -167,13 +286,26 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
     },
   });
 
-  if (accounts.isPending || categories.isPending || payees.isPending) return <Skeleton lines={6} />;
-  if (accounts.isError || categories.isError || payees.isError)
+  if (accounts.isPending || categories.isPending || payees.isPending || members.isPending)
+    return <Skeleton lines={6} />;
+  if (accounts.isError || categories.isError || payees.isError || members.isError)
     return (
       <ErrorState
-        onRetry={() => void Promise.all([accounts.refetch(), categories.refetch(), payees.refetch()])}
+        onRetry={() =>
+          void Promise.all([accounts.refetch(), categories.refetch(), payees.refetch(), members.refetch()])
+        }
       />
     );
+
+  const draftCtx = {
+    id: "",
+    family,
+    accounts: accounts.data,
+    categories: categories.data,
+    ...(existing ? { existing } : {}),
+  };
+  const account = accounts.data.find((a) => a.id === accountId);
+  const autoSplit = previewAutoSplit({ type, categoryId, accountId }, draftCtx);
 
   const onSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
@@ -238,6 +370,16 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
             placeholder={t("tx.descriptionPlaceholder")}
             value={description}
             onChange={setDescription}
+          />
+          <SplitSection
+            members={members.data}
+            manual={manualSplit}
+            onManual={setManualSplit}
+            auto={autoSplit}
+            autoKey={autoSplit ? autoSourceKey(autoSplit, type, account) : "split.source.default"}
+            isPrivate={account?.visibility === "private"}
+            amountCents={amountCents}
+            invalid={errors.includes("split")}
           />
           {errors.length > 0 || save.isError ? (
             <ul role="alert" className={cx(styles.error)}>
