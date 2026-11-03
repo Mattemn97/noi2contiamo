@@ -1,52 +1,13 @@
-// Pagine piccole del filo base: panoramica, area personale (segnaposto), altro (account, tema, server), 404.
+// Pagine piccole del filo base: altro (account, tema, server), 404.
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAdapter } from "../../data/AdapterContext";
-import { useCollection, useResetAfterAuth, useSession } from "../../data/queries";
+import { useResetAfterAuth, useSession } from "../../data/queries";
 import { t } from "../../i18n/it";
 import { Button, Card, EmptyState, PageHeader, StatusBadge, ThemeSwitcher, type Status } from "../../ui";
 import { cx } from "../../ui/cx";
 import styles from "../layout.module.css";
-import { useFamily } from "../guards";
-
-export function OverviewPage() {
-  const { family } = useFamily();
-  const navigate = useNavigate();
-  const transactions = useCollection(family.id, "transactions");
-  return (
-    <>
-      <PageHeader title={t("overview.title")} subtitle={t("overview.family", { name: family.name })} />
-      <Card>
-        <div className={cx(styles.stack)}>
-          <p className={cx(styles.muted)}>
-            {t("overview.count", { count: String(transactions.data?.length ?? 0) })}
-          </p>
-          <div className={cx(styles.actions)}>
-            <Button onPress={() => void navigate("/movimenti/nuovo")}>{t("tx.add")}</Button>
-            <Button variant="secondary" onPress={() => void navigate("/movimenti")}>
-              {t("overview.goList")}
-            </Button>
-            <Button variant="secondary" onPress={() => void navigate("/saldo")}>
-              {t("overview.goBalance")}
-            </Button>
-          </div>
-        </div>
-      </Card>
-    </>
-  );
-}
-
-export function PersonalPage() {
-  return (
-    <>
-      <PageHeader title={t("personal.title")} />
-      <Card>
-        <EmptyState title={t("personal.soon")} />
-      </Card>
-    </>
-  );
-}
 
 type Health = "checking" | "online" | "offline";
 const HEALTH_STATUS: Readonly<Record<Health, Status>> = {

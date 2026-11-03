@@ -27,9 +27,9 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 11 | Import CSV con profili salvati | Slice 7 | done |
 | 12 | Regole automatiche | Slice 8 | done |
 | 13 | Pagamenti ricorrenti e previsioni | Slice 9 | done |
-| 14 | Dashboard di coppia | Slice 10 | planned |
-| 15 | Area personale | Slice 11 | planned |
-| 16 | Confronto tra periodi | Slice 12 | planned |
+| 14 | Dashboard di coppia | Slice 10 | done |
+| 15 | Area personale | Slice 11 | done |
+| 16 | Confronto tra periodi | Slice 12 | done |
 | 17 | Export CSV | Slice 13 | planned |
 | 18 | Report PDF settimanali, mensili, annuali | Slice 14 | planned |
 | 19 | Promemoria e notifiche gratuite | Slice 15 | planned |
@@ -218,24 +218,27 @@ Inserimento di pagamenti ricorrenti (affitto, abbonamenti, bollette), riconoscim
 
 ## Slice 10
 
-### 14. Dashboard di coppia · needs decision
+### 14. Dashboard di coppia · done
 Vista d'insieme della famiglia: indicatori principali, andamento entrate e uscite, spese per categoria, contributo di ciascun membro, saldo tra i membri. Grafici dinamici con tabelle riassuntive.
 **Done when:** la dashboard si aggiorna al cambio del periodo; ogni grafico ha la sua tabella; i totali coincidono con il registro.
-- [ ] Design it (spec): `/architect dashboard`
+Scelte: aggregati puri in `packages/core/src/dashboard.ts`; la home `/` è la dashboard (selettore settimana/mese/anno con precedente/successivo, interruttore famiglia/personale, grafici lazy con tabella). Giroconti fuori da entrate e uscite; rimborsi sottratti. Vista famiglia: solo movimenti condivisi (i privati mai, nemmeno i propri). "Chi ha pagato" = spese per `payerMemberId` (null = cassa comune), colori per ordine di ingresso. Andamento a settimane (mese/settimana) o mesi (anno). Il saldo tra i membri riusa `memberBalances` sul periodo. Nessuna modifica ai backend.
+- [x] Build it
 
 ## Slice 11
 
-### 15. Area personale
+### 15. Area personale · done
 Le stesse viste ma solo tue: le tue spese, la tua quota delle spese comuni, i tuoi conti e il loro saldo.
 **Done when:** passando da vista di coppia a vista personale i numeri cambiano in modo coerente; i conti personali dell'altro membro restano privati se lui lo decide.
-- [ ] Build it: `/develop area personale`
+Scelte: `/personale` è la stessa pagina con vista personale. Conta la quota (`split`) del membro sui movimenti condivisi; senza `split` l'intero importo solo se conto o movimento sono suoi; i movimenti privati solo se `ownerMemberId` è l'utente, quelli di un altro membro non entrano mai (controllo anche in `core`).
+- [x] Build it: `/develop area personale`
 
 ## Slice 12
 
-### 16. Confronto tra periodi
+### 16. Confronto tra periodi · done
 Confronto tra settimane, mesi o anni (questo mese contro il precedente, contro lo stesso mese dell'anno prima) su totali e categorie.
 **Done when:** scegli due periodi e vedi la differenza in valore e percentuale per totale e per categoria; funziona in vista di coppia e personale.
-- [ ] Build it: `/develop confronto periodi`
+Scelte: periodi a calendario (settimana lun-dom, mese, anno); confronto con il precedente o con lo stesso periodo dell'anno prima (settimana: 52 settimane prima; per l'anno solo il precedente). Differenza in centesimi e percentuale in punti base; con base zero la percentuale è `null` e la UI scrive "n.d. (base zero)". Categorie presenti in un solo periodo incluse, ordinate per variazione assoluta. Vale in entrambe le viste.
+- [x] Build it: `/develop confronto periodi`
 
 ## Slice 13
 

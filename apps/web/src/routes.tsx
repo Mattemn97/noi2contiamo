@@ -1,5 +1,6 @@
 // Le route della SPA (react-router in modalità data router, senza framework mode: spec 0001).
 import type { RouteObject } from "react-router";
+import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { AuthPage } from "./features/auth/AuthPage";
 import { BalancePage } from "./features/balance/BalancePage";
 import { AccountsPage } from "./features/catalog/AccountsPage";
@@ -16,7 +17,7 @@ import { RecurringPage } from "./features/recurring/RecurringPage";
 import { SuggestionsPage } from "./features/recurring/SuggestionsPage";
 import { RuleEditorPage } from "./features/rules/RuleEditorPage";
 import { RulesPage } from "./features/rules/RulesPage";
-import { MorePage, NotFoundPage, OverviewPage, PersonalPage } from "./features/more/pages";
+import { MorePage, NotFoundPage } from "./features/more/pages";
 import { EditTransactionPage, NewTransactionPage } from "./features/transactions/NewTransactionPage";
 import { TransactionsPage } from "./features/transactions/TransactionsPage";
 
@@ -31,13 +32,13 @@ export const routes: RouteObject[] = [
       {
         element: <RequireFamily />,
         children: [
-          { path: "/", element: <OverviewPage /> },
+          { path: "/", element: <DashboardPage initialView="family" /> },
           { path: "/movimenti", element: <TransactionsPage /> },
           { path: "/movimenti/nuovo", element: <NewTransactionPage /> },
           { path: "/movimenti/:id", element: <EditTransactionPage /> },
           { path: "/saldo", element: <BalancePage /> },
           { path: "/importa", element: <ImportPage /> },
-          { path: "/personale", element: <PersonalPage /> },
+          { path: "/personale", element: <DashboardPage initialView="personal" /> },
           { path: "/altro", element: <MorePage /> },
           { path: "/altro/famiglia", element: <FamilyPage /> },
           { path: "/altro/conti", element: <AccountsPage /> },
