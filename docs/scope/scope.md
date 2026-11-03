@@ -30,8 +30,8 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 14 | Dashboard di coppia | Slice 10 | done |
 | 15 | Area personale | Slice 11 | done |
 | 16 | Confronto tra periodi | Slice 12 | done |
-| 17 | Export CSV | Slice 13 | planned |
-| 18 | Report PDF settimanali, mensili, annuali | Slice 14 | planned |
+| 17 | Export CSV | Slice 13 | done |
+| 18 | Report PDF settimanali, mensili, annuali | Slice 14 | done |
 | 19 | Promemoria e notifiche gratuite | Slice 15 | planned |
 | 20 | Pacchetti di installazione (container, cloud, locale) | Slice 16 | planned |
 | 21 | Pronto per l'open source | Slice 17 | planned |
@@ -242,17 +242,19 @@ Scelte: periodi a calendario (settimana lun-dom, mese, anno); confronto con il p
 
 ## Slice 13
 
-### 17. Export CSV
+### 17. Export CSV · done
 Esporta i movimenti filtrati e le tabelle riassuntive in CSV, leggibile da Excel italiano.
 **Done when:** il file esportato rispetta i filtri attivi, si apre correttamente in un foglio di calcolo con accenti e importi giusti.
-- [ ] Build it: `/develop export csv`
+Scelte: serializzazione pura in `packages/core/src/csv.ts`; separatore `;`, BOM UTF-8, virgola decimale senza migliaia, date gg/mm/aaaa, righe CRLF. I testi che iniziano con `= + - @` ricevono un apice davanti (formula injection). Importi con segno (spese negative), giroconti positivi. Si esportano tutti i movimenti filtrati, non solo la pagina; ogni tabella riassuntiva ha il suo pulsante.
+- [x] Build it
 
 ## Slice 14
 
-### 18. Report PDF settimanali, mensili, annuali · needs decision
+### 18. Report PDF settimanali, mensili, annuali · done
 Report PDF del periodo scelto con riepilogo, grafici, divisioni tra i membri e saldo finale.
 **Done when:** scarichi il PDF di una settimana, un mese o un anno; i numeri coincidono con la dashboard; il PDF è leggibile anche stampato in bianco e nero.
-- [ ] Design it (spec): `/architect report pdf`
+Scelte: dati puri in `packages/core/src/report.ts` (riusa dashboard e `memberBalances`, quindi numeri identici); nessuna spec, tutto nel browser e uguale nei due backend. jsPDF 4.2.1 solo in `apps/web`, import dinamico al clic (fuori dal bundle principale). Grafici disegnati a mano con tratteggi diversi ed etichette dirette con valore, leggibili in bianco e nero. Il selettore del periodo è quello della dashboard (settimana/mese/anno) con il pulsante di download accanto; il report segue la vista famiglia/personale. Saldo finale solo in vista famiglia; i movimenti privati non entrano mai.
+- [x] Build it
 
 ## Slice 15
 

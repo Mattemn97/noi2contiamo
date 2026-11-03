@@ -5,6 +5,8 @@ import {
   SUMMARY_DIMENSIONS,
   cents,
   filterTransactions,
+  movementsCsv,
+  summaryCsv,
   pageOf,
   periodRange,
   signedCents,
@@ -51,6 +53,7 @@ import {
 import { cx } from "../../ui/cx";
 import { categoryLabel } from "../catalog/CategoriesPage";
 import { useFamily } from "../guards";
+import { downloadBytes } from "../dashboard/reportPdf";
 import { filterOf, parseRegister, serializeRegister, type RegisterState } from "./registerUrl";
 import styles from "./register.module.css";
 import { splitText } from "../split/SplitEditor";
@@ -134,6 +137,65 @@ function amountCell(tx: Transaction) {
   const signed = signedCents(tx);
   if (tx.type === "transfer") return <Amount value={cents(tx.amountCents)} />;
   return <Amount value={cents(tx.amountCents)} kind={signed >= 0 ? "income" : "expense"} />;
+}
+
+const csvFile = (name: string): string => `${name}-${today(getLocalTimeZone()).toString()}.csv`;
+const downloadCsv = (text: string, name: string): void => {
+  downloadBytes(new TextEncoder().encode(text), csvFile(name), "text/csv;charset=utf-8");
+};
+
+function exportMovements(txs: readonly Transaction[], names: Names): void {
+  downloadCsv(
+    movementsCsv(
+      txs,
+      [
+        t("csv.date"),
+        t("csv.type"),
+        t("csv.description"),
+        t("csv.category"),
+        t("csv.payee"),
+        t("csv.account"),
+        t("csv.toAccount"),
+        t("csv.payer"),
+        t("csv.amount"),
+        t("csv.refund"),
+        t("csv.notes"),
+      ],
+      {
+        type: (type) => labelOf("type", type, names),
+        account: (id) => (id === null ? "" : (names.account.get(id) ?? "")),
+        category: (id) => (id === null ? "" : (names.category.get(id) ?? "")),
+        payee: (id) => (id === null ? "" : (names.payee.get(id) ?? "")),
+        member: (id) => labelOf("member", id, names),
+        yes: t("csv.yes"),
+      },
+    ),
+    "movimenti",
+  );
+}
+
+function exportSummary(
+  dimension: SummaryDimension,
+  rows: readonly SummaryRow[],
+  totals: ReturnType<typeof totalsOf>,
+  names: Names,
+): void {
+  downloadCsv(
+    summaryCsv(
+      rows,
+      totals,
+      [
+        t(DIMENSION_KEYS[dimension]),
+        t("tx.summary.col.count"),
+        t("tx.summary.col.income"),
+        t("tx.summary.col.expense"),
+        t("tx.summary.col.net"),
+      ],
+      (key) => labelOf(dimension, key, names),
+      t("csv.total"),
+    ),
+    `riepilogo-${dimension}`,
+  );
 }
 
 export function TransactionsPage() {
@@ -272,6 +334,15 @@ export function TransactionsPage() {
 
   const add = (
     <>
+      <Button
+        variant="secondary"
+        isDisabled={filtered.length === 0}
+        onPress={() => {
+          exportMovements(filtered, names);
+        }}
+      >
+        {t("csv.export")}
+      </Button>
       <Button variant="secondary" onPress={() => void navigate("/importa")}>
         {t("import.open")}
       </Button>
@@ -394,12 +465,25 @@ export function TransactionsPage() {
                 id: dimension,
                 label: t(DIMENSION_KEYS[dimension]),
                 content: (
-                  <SummaryTable
-                    dimension={dimension}
-                    rows={summarize(filtered, dimension)}
-                    names={names}
-                    totals={totals}
-                  />
+                  <div className={cx(styles.stack)}>
+                    <div>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onPress={() => {
+                          exportSummary(dimension, summarize(filtered, dimension), totals, names);
+                        }}
+                      >
+                        {t("csv.exportSummary")}
+                      </Button>
+                    </div>
+                    <SummaryTable
+                      dimension={dimension}
+                      rows={summarize(filtered, dimension)}
+                      names={names}
+                      totals={totals}
+                    />
+                  </div>
                 ),
               }))}
             />

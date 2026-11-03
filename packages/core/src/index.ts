@@ -1,5 +1,6 @@
 // Dominio puro: niente IO, niente React, niente SDK.
 export * from "./balance";
+export * from "./csv";
 export * from "./dashboard";
 export * from "./division";
 export * from "./fingerprint";
@@ -14,6 +15,7 @@ export * from "./model/schemas";
 export * from "./money";
 export * from "./normalize";
 export * from "./register";
+export * from "./report";
 export * from "./recurring";
 export * from "./result";
 export * from "./rules";

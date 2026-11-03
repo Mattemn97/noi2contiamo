@@ -2,6 +2,7 @@
 // `core/dashboard`; qui si leggono i dati, si sceglie il periodo e si disegna. Recharts resta in blocchi lazy.
 import {
   addDays,
+  buildReport,
   cents,
   comparePeriods,
   comparisonPeriod,
@@ -22,6 +23,7 @@ import {
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { lazy, Suspense, useState } from "react";
 import { useNavigate } from "react-router";
+import { downloadBytes } from "./reportPdf";
 import { useAllDocs, useCollection } from "../../data/queries";
 import { t } from "../../i18n/it";
 import {
@@ -87,6 +89,7 @@ export function DashboardPage({ initialView }: DashboardPageProps) {
   const [g, setG] = useState<CompareGranularity>("month");
   const [anchor, setAnchor] = useState<string>(() => today(getLocalTimeZone()).toString());
   const [mode, setMode] = useState<CompareMode>("previous");
+  const [pdfState, setPdfState] = useState<"idle" | "busy" | "error">("idle");
 
   if (transactions.isPending || accounts.isPending || members.isPending || categories.isPending)
     return <Skeleton lines={8} />;
@@ -142,6 +145,58 @@ export function DashboardPage({ initialView }: DashboardPageProps) {
           range: period,
         })
       : null;
+
+  const downloadPdf = (): void => {
+    setPdfState("busy");
+    const data = buildReport(
+      transactions.data,
+      { view, accounts: accounts.data, family, memberIds: active.map((m) => m.id) },
+      g,
+      anchor,
+    );
+    void import("./reportPdf")
+      .then(({ buildReportPdf }) =>
+        buildReportPdf(
+          data,
+          {
+            title: t("report.title", { period: label }),
+            subtitle: kind === "family" ? family.name : t("dash.subtitlePersonal"),
+            period: label,
+            generated: t("report.generated", { date: new Date().toLocaleDateString("it-IT") }),
+            kpis: t("report.kpis"),
+            income: t("dash.income"),
+            expense: t("dash.expense"),
+            savings: t("dash.savings"),
+            rate: t("dash.rate"),
+            noRate: t("report.noRate"),
+            categories: t("report.categories"),
+            noData: t("report.noData"),
+            others: t("report.others"),
+            paid: t("report.paid"),
+            balance: t("report.balance"),
+            balanceNote: t("report.balanceNote"),
+            colMember: t("report.col.member"),
+            colPaid: t("report.col.paid"),
+            colShare: t("report.col.share"),
+            colNet: t("report.col.net"),
+          },
+          {
+            money,
+            signed,
+            percent: (bp) => formatBasisPoints(bp as BasisPoints),
+            categoryName: nameOfCategory,
+            memberName: nameOfMember,
+          },
+        ),
+      )
+      .then((bytes) => {
+        downloadBytes(bytes, `report-${g}-${period.from}.pdf`, "application/pdf");
+        setPdfState("idle");
+      })
+      .catch(() => {
+        setPdfState("error");
+      });
+  };
 
   const chartState = entries.length === 0 ? "empty" : "ready";
   const compareRows = cmp.categories.map((c) => ({
@@ -233,7 +288,11 @@ export function DashboardPage({ initialView }: DashboardPageProps) {
                 {t("dash.next")}
               </Button>
             </div>
+            <Button variant="secondary" size="sm" isDisabled={pdfState === "busy"} onPress={downloadPdf}>
+              {pdfState === "busy" ? t("report.generating") : t("report.download")}
+            </Button>
           </div>
+          {pdfState === "error" ? <p role="alert">{t("report.error")}</p> : null}
         </Card>
 
         <div className={cx(local.kpis)}>
