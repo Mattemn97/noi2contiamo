@@ -27,6 +27,9 @@ export function OverviewPage() {
             <Button variant="secondary" onPress={() => void navigate("/movimenti")}>
               {t("overview.goList")}
             </Button>
+            <Button variant="secondary" onPress={() => void navigate("/saldo")}>
+              {t("overview.goBalance")}
+            </Button>
           </div>
         </div>
       </Card>
@@ -135,6 +138,16 @@ export function MorePage() {
               </Button>
               <Button variant="secondary" onPress={() => void navigate("/altro/destinatari")}>
                 {t("payees.title")}
+              </Button>
+            </div>
+          </div>
+        </Card>
+        <Card title={t("more.balance")} as="section">
+          <div className={cx(styles.stack)}>
+            <p className={cx(styles.muted)}>{t("more.balanceHelp")}</p>
+            <div className={cx(styles.actions)}>
+              <Button variant="secondary" onPress={() => void navigate("/saldo")}>
+                {t("balance.title")}
               </Button>
             </div>
           </div>

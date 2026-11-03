@@ -257,7 +257,7 @@ export function TransactionsPage() {
               />
             }
             actions={[
-              ...(tx.type === "transfer" ? [] : [{ id: "edit", label: t("tx.action.edit") }]),
+              { id: "edit", label: t("tx.action.edit") },
               { id: "delete", label: t("tx.action.delete"), tone: "danger" as const },
             ]}
             onAction={(action) => {

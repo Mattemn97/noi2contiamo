@@ -42,7 +42,7 @@ export interface SplitDraft {
   readonly shares: Readonly<Record<string, number | null>>;
 }
 
-export type DraftError = "amount" | "category" | "account" | "split";
+export type DraftError = "amount" | "category" | "account" | "split" | "toAccount" | "sameAccount";
 
 export interface DraftContext {
   readonly id: string;
@@ -204,4 +204,62 @@ export function resolvePayee(
   if (found) return { payeeId: found.id, create: null };
   const create = payeeFromName(makeId(), text);
   return { payeeId: create.id, create };
+}
+
+// ---- Giroconti (feature 10, spec 0005, AC-1) ------------------------------------------------
+
+export interface TransferDraft {
+  readonly amountCents: number | null;
+  readonly date: string;
+  readonly accountId: string | null;
+  readonly toAccountId: string | null;
+  readonly description: string;
+}
+
+export function transferDraftOf(tx: Transaction): TransferDraft | null {
+  if (tx.type !== "transfer") return null;
+  return {
+    amountCents: tx.amountCents,
+    date: tx.date,
+    accountId: tx.accountId,
+    toAccountId: tx.toAccountId,
+    description: tx.description,
+  };
+}
+
+/**
+ * Dal modulo al giroconto: niente categoria, destinatario né divisione; visibilità e chi paga dai conti.
+ * Modificando un giroconto restano `settlement`, impronte e il resto dei campi che il modulo non mostra.
+ */
+export function buildTransfer(
+  draft: TransferDraft,
+  ctx: { readonly id: string; readonly accounts: readonly Account[]; readonly existing?: Transaction },
+): Result<WriteDocOf<"transactions">, DraftError[]> {
+  const errors: DraftError[] = [];
+  const amount = draft.amountCents;
+  if (amount === null || !Number.isSafeInteger(amount) || amount <= 0) errors.push("amount");
+  const from = ctx.accounts.find((a) => a.id === draft.accountId);
+  const to = ctx.accounts.find((a) => a.id === draft.toAccountId);
+  if (!from) errors.push("account");
+  if (!to) errors.push("toAccount");
+  if (from && to && from.id === to.id) errors.push("sameAccount");
+  if (errors.length > 0 || !from || !to || amount === null) return err(errors);
+  const existing = ctx.existing;
+  const base = existing ? withoutAudit(existing) : null;
+  return ok({
+    ...base,
+    id: existing?.id ?? ctx.id,
+    type: "transfer",
+    date: draft.date,
+    amountCents: amount,
+    isRefund: false,
+    accountId: from.id,
+    toAccountId: to.id,
+    categoryId: null,
+    payeeId: null,
+    split: null,
+    settlement: existing?.type === "transfer" ? existing.settlement : null,
+    description: draft.description.trim(),
+    ...accountDefaults(from, to),
+  });
 }

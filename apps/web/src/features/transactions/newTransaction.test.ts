@@ -2,7 +2,13 @@ import { newId, parseDoc, type Account, type Category, type Family } from "@noi2
 import { describe, expect, it } from "vitest";
 import { signedCents } from "@noi2contiamo/core";
 import { calendarDate } from "./TransactionsPage";
-import { buildTransaction, draftOf, type TransactionDraft } from "./newTransaction";
+import {
+  buildTransaction,
+  buildTransfer,
+  draftOf,
+  transferDraftOf,
+  type TransactionDraft,
+} from "./newTransaction";
 
 const ownerId = newId();
 const audit = { createdAtMs: 1, createdByMemberId: ownerId, updatedAtMs: 1, updatedByMemberId: ownerId };
@@ -245,5 +251,87 @@ describe("divisione a mano nel modulo (AC-3, AC-4)", () => {
       source: "default",
       shares: { [partnerId]: 10000 },
     });
+  });
+});
+
+describe("buildTransfer (spec 0005, AC-1)", () => {
+  const draft = {
+    amountCents: 2500,
+    date: "2026-11-03",
+    accountId: personal.id,
+    toAccountId: shared.id,
+    description: " Versamento ",
+  };
+
+  it("un giroconto non ha categoria, destinatario né divisione; visibilità dai due conti", () => {
+    const built = buildTransfer(draft, { id: ctx.id, accounts: ctx.accounts });
+    expect(built.ok && built.value).toMatchObject({
+      type: "transfer",
+      accountId: personal.id,
+      toAccountId: shared.id,
+      categoryId: null,
+      payeeId: null,
+      split: null,
+      settlement: null,
+      description: "Versamento",
+      visibility: "shared",
+      payerMemberId: ownerId,
+    });
+  });
+
+  it("conti mancanti o uguali e importo vuoto sono errori del modulo", () => {
+    expect(
+      buildTransfer({ ...draft, toAccountId: personal.id }, { id: ctx.id, accounts: ctx.accounts }),
+    ).toEqual({
+      ok: false,
+      error: ["sameAccount"],
+    });
+    expect(
+      buildTransfer(
+        { ...draft, amountCents: null, toAccountId: null },
+        { id: ctx.id, accounts: ctx.accounts },
+      ),
+    ).toEqual({ ok: false, error: ["amount", "toAccount"] });
+  });
+
+  it("modificando un pareggio resta il settlement; una spesa che diventa giroconto perde divisione e categoria", () => {
+    const settlement = { fromMemberId: ownerId, toMemberId: newId() };
+    const existing = parseDoc("transactions", {
+      ...audit,
+      id: newId(),
+      type: "transfer",
+      date: "2026-11-01",
+      amountCents: 100,
+      accountId: shared.id,
+      toAccountId: personal.id,
+      settlement,
+    });
+    if (!existing.ok) throw new Error("doc");
+    const edited = buildTransfer(draft, { id: ctx.id, accounts: ctx.accounts, existing: existing.value });
+    expect(edited.ok && edited.value).toMatchObject({ id: existing.value.id, settlement, amountCents: 2500 });
+    expect(transferDraftOf(existing.value)).toMatchObject({ toAccountId: personal.id, amountCents: 100 });
+
+    const spesa = buildTransaction(
+      {
+        type: "expense",
+        amountCents: 900,
+        date: "2026-11-03",
+        categoryId: food.id,
+        accountId: shared.id,
+        description: "",
+      },
+      ctx,
+    );
+    if (!spesa.ok) throw new Error("spesa");
+    const asDoc = parseDoc("transactions", { ...spesa.value, ...audit });
+    if (!asDoc.ok) throw new Error("doc");
+    const moved = buildTransfer(draft, { id: ctx.id, accounts: ctx.accounts, existing: asDoc.value });
+    expect(moved.ok && moved.value).toMatchObject({
+      id: asDoc.value.id,
+      categoryId: null,
+      split: null,
+      settlement: null,
+    });
+    if (moved.ok) expect(parseDoc("transactions", { ...moved.value, ...audit }).ok).toBe(true);
   });
 });

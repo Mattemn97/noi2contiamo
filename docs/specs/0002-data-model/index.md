@@ -341,7 +341,7 @@ Ordine Tracer Bullet: prima un filo completo per le collezioni della slice 1 (fa
 
 ## Follow-up
 
-- [ ] Feature 9 e 10: decidere se un giroconto tra conti di membri diversi senza `settlement` conta nel saldo tra membri (il modello regge entrambe le scelte).
+- [x] Feature 9 e 10 (deciso nello spec 0005: conta): decidere se un giroconto tra conti di membri diversi senza `settlement` conta nel saldo tra membri (il modello regge entrambe le scelte).
 - [ ] Feature 19: collezioni private per i canali (sottoscrizioni Web Push, chat Telegram, email) e ciclo di invio.
 - [ ] Feature 23: comando di backup del file SQLite e interfaccia di export e import, sopra il formato v1 qui fissato.
 - [ ] Documenti riassuntivi mensili in Firestore solo se le letture misurate si avvicinano alla quota.

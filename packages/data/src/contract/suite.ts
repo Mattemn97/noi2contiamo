@@ -4,6 +4,9 @@ import {
   AUDIT_KEYS,
   autoSplit,
   memberAmounts,
+  memberBalances,
+  settlementPlan,
+  settlementTransfer,
   reapplySplits,
   defaultCategories,
   filterTransactions,
@@ -99,6 +102,7 @@ export type SuiteGroup =
   | "catalog"
   | "register"
   | "split"
+  | "balance"
   | "export";
 
 export interface SuiteOptions {
@@ -822,6 +826,63 @@ export function runContractSuite(name: string, makeAdapter: () => DataAdapter, o
         expect(memberAmounts(saved.amountCents, saved.split!)).toEqual({ [ownerId]: 6001, [partnerId]: 4000 });
         expect(unwrap(await adapter.get(familyId, "transactions", manual.id)).split?.source).toBe("manual");
         expect(autoSplit(saved, ctx).source).toBe("category");
+      });
+    });
+
+    group("balance", "giroconti e saldo tra i membri (feature 10, spec 0005)", () => {
+      it("un giroconto non cambia i totali; il pareggio salvato come giroconto porta il saldo a zero", async () => {
+        const { adapter, familyId, ownerId, partnerId, shared, expense, as } = await setup(makeAdapter());
+        const annas = unwrap(await adapter.put(familyId, "accounts", account({ name: "Conto Anna", ownerMemberId: ownerId })));
+        const brunos = unwrap(await adapter.put(familyId, "accounts", account({ name: "Conto Bruno", ownerMemberId: partnerId })));
+        unwrap(await adapter.put(familyId, "transactions", expense({ accountId: annas.id, payerMemberId: ownerId })));
+        const before = totalsOf(unwrap(await adapter.list(familyId, "transactions")).docs);
+        unwrap(
+          await adapter.put(familyId, "transactions", {
+            id: newId(),
+            type: "transfer",
+            date: "2026-11-03",
+            amountCents: 2500,
+            accountId: annas.id,
+            toAccountId: shared.id,
+          }),
+        );
+        const withTransfer = unwrap(await adapter.list(familyId, "transactions")).docs;
+        expect(totalsOf(withTransfer)).toEqual({ ...before, count: before.count + 1 });
+
+        const family = unwrap(await adapter.membership.myFamilies()).find((f) => f.family.id === familyId)!.family;
+        const accounts = unwrap(await adapter.list(familyId, "accounts")).docs;
+        const ctx = { accounts, family, memberIds: [ownerId, partnerId] };
+        const nets = (txs: typeof withTransfer) =>
+          Object.fromEntries(memberBalances(txs, ctx).rows.map((r) => [r.memberId, r.netCents]));
+        const start = nets(withTransfer);
+        expect(start[ownerId]).toBeGreaterThan(0);
+        expect(start[ownerId]! + start[partnerId]!).toBe(0);
+        const [payment] = settlementPlan(start);
+        expect(payment).toMatchObject({ fromMemberId: partnerId, toMemberId: ownerId });
+
+        await as("partner");
+        const doc = settlementTransfer(payment!, { id: newId(), date: "2026-11-04", accounts, description: "Pareggio" });
+        if (!doc.ok) throw new Error(doc.error);
+        expect(doc.value).toMatchObject({ accountId: brunos.id, toAccountId: annas.id });
+        const saved = unwrap(await adapter.put(familyId, "transactions", doc.value));
+        expect(saved.settlement).toEqual({ fromMemberId: partnerId, toMemberId: ownerId });
+        const after = unwrap(await adapter.list(familyId, "transactions")).docs;
+        expect(nets(after)).toEqual({ [ownerId]: 0, [partnerId]: 0 });
+        expect(totalsOf(after).netCents).toBe(before.netCents);
+      });
+
+      it("un pareggio con lo stesso membro dalle due parti è rifiutato", async () => {
+        const { adapter, familyId, ownerId, shared, mine } = await setup(makeAdapter());
+        const result = await adapter.put(familyId, "transactions", {
+          id: newId(),
+          type: "transfer",
+          date: "2026-11-03",
+          amountCents: 100,
+          accountId: mine.id,
+          toAccountId: shared.id,
+          settlement: { fromMemberId: ownerId, toMemberId: ownerId },
+        });
+        expect(errorOf(result).code).toBe("invalid");
       });
     });
 

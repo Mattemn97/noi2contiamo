@@ -1,4 +1,4 @@
-// Nuovo movimento o modifica di uno esistente (spesa o entrata); divisione dalla categoria o dalla famiglia.
+// Nuovo movimento o modifica di uno esistente (spesa, entrata o giroconto); divisione dalla categoria o dalla famiglia.
 import {
   newId,
   pickable,
@@ -39,7 +39,9 @@ import { categoryLabel } from "../catalog/CategoriesPage";
 import { amountsText, splitMembers, SplitEditor } from "../split/SplitEditor";
 import {
   buildTransaction,
+  buildTransfer,
   draftOf,
+  transferDraftOf,
   previewAutoSplit,
   resolvePayee,
   type DraftError,
@@ -53,7 +55,11 @@ const ERROR_KEYS: Readonly<Record<DraftError, MessageKey>> = {
   category: "tx.error.category",
   account: "tx.error.account",
   split: "tx.error.split",
+  toAccount: "tx.error.toAccount",
+  sameAccount: "tx.error.sameAccount",
 };
+
+type FormType = EntryType | "transfer";
 
 type SplitSourceKey =
   "split.source.category" | "split.source.default" | "split.source.owner" | "split.source.rule";
@@ -184,15 +190,6 @@ export function EditTransactionPage() {
         </Card>
       </>
     );
-  if (tx.data.type === "transfer")
-    return (
-      <>
-        <PageHeader title={t("tx.edit.title")} subtitle={family.name} />
-        <Card>
-          <EmptyState title={t("tx.edit.transfer.title")} description={t("tx.edit.transfer.body")} />
-        </Card>
-      </>
-    );
   return <TransactionForm key={tx.data.id} existing={tx.data} />;
 }
 
@@ -207,21 +204,26 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
   const payees = useCollection(family.id, "payees");
   const members = useCollection(family.id, "members");
 
-  const initial = existing ? draftOf(existing) : null;
-  const [type, setType] = useState<EntryType>(initial?.type ?? "expense");
+  const initial = existing ? (draftOf(existing) ?? transferDraftOf(existing)) : null;
+  const initialTransfer = existing ? transferDraftOf(existing) : null;
+  const [type, setType] = useState<FormType>(existing?.type ?? "expense");
+  const [toAccountId, setToAccountId] = useState<string | null>(initialTransfer?.toAccountId ?? null);
   const [amountCents, setAmountCents] = useState<Cents | null>(
     (initial?.amountCents as Cents | undefined) ?? null,
   );
   const [date, setDate] = useState<CalendarDate>(() =>
     initial ? parseDate(initial.date) : today(getLocalTimeZone()),
   );
-  const [categoryId, setCategoryId] = useState<string | null>(initial?.categoryId ?? null);
+  const [categoryId, setCategoryId] = useState<string | null>(
+    initial && "categoryId" in initial ? initial.categoryId : null,
+  );
   const [chosenAccountId, setAccountId] = useState<string | null>(initial?.accountId ?? null);
   const [description, setDescription] = useState(initial?.description ?? "");
+  const entryInitial = existing ? draftOf(existing) : null;
   const [payeeText, setPayeeText] = useState(
-    () => (payees.data ?? []).find((p) => p.id === initial?.payeeId)?.name ?? "",
+    () => (payees.data ?? []).find((p) => p.id === entryInitial?.payeeId)?.name ?? "",
   );
-  const [manualSplit, setManualSplit] = useState<SplitDraft | null>(initial?.split ?? null);
+  const [manualSplit, setManualSplit] = useState<SplitDraft | null>(entryInitial?.split ?? null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Il registro passa i suoi filtri nello state: si torna lì com'era.
   const location = useLocation();
@@ -240,6 +242,19 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
 
   const save = useMutation({
     mutationFn: async () => {
+      if (type === "transfer") {
+        const built = buildTransfer(
+          { amountCents, date: date.toString(), accountId, toAccountId, description },
+          { id: newId(), accounts: accounts.data ?? [], ...(existing ? { existing } : {}) },
+        );
+        if (!built.ok) {
+          setErrors(built.error);
+          return false;
+        }
+        setErrors([]);
+        unwrap(await adapter.put(family.id, "transactions", built.value));
+        return true;
+      }
       const payee = resolvePayee(payeeText, payees.data ?? [], newId);
       const built = buildTransaction(
         {
@@ -305,7 +320,8 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
     ...(existing ? { existing } : {}),
   };
   const account = accounts.data.find((a) => a.id === accountId);
-  const autoSplit = previewAutoSplit({ type, categoryId, accountId }, draftCtx);
+  const entryType: EntryType = type === "transfer" ? "expense" : type;
+  const autoSplit = previewAutoSplit({ type: entryType, categoryId, accountId }, draftCtx);
 
   const onSubmit = (event: SyntheticEvent) => {
     event.preventDefault();
@@ -317,7 +333,7 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
       <PageHeader title={t(existing ? "tx.edit.title" : "tx.new.title")} subtitle={family.name} />
       <Card>
         <form className={cx(styles.form)} onSubmit={onSubmit} noValidate>
-          <SegmentedControl<EntryType>
+          <SegmentedControl<FormType>
             label={t("tx.type")}
             value={type}
             onChange={(next) => {
@@ -327,6 +343,7 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
             options={[
               { id: "expense", label: t("tx.type.expense") },
               { id: "income", label: t("tx.type.income") },
+              { id: "transfer", label: t("tx.type.transfer") },
             ]}
           />
           <MoneyField label={t("tx.amount")} isRequired value={amountCents} onChange={setAmountCents} />
@@ -337,50 +354,86 @@ function TransactionForm({ existing }: { readonly existing?: Transaction }) {
               if (next) setDate(next);
             }}
           />
-          <Select
-            label={t("tx.category")}
-            options={categoryOptions}
-            value={categoryId}
-            onChange={(key) => {
-              setCategoryId(key === null ? null : String(key));
-            }}
-            isInvalid={errors.includes("category")}
-            errorMessage={t("tx.error.category")}
-          />
-          <Select
-            label={t("tx.account")}
-            options={activeAccounts.map((a) => ({ id: a.id, label: a.name }))}
-            value={accountId}
-            onChange={(key) => {
-              setAccountId(key === null ? null : String(key));
-            }}
-            isInvalid={errors.includes("account")}
-            errorMessage={t("tx.error.account")}
-          />
-          <ComboBox
-            label={t("tx.payee")}
-            description={t("tx.payeeHelp")}
-            options={payeeOptions}
-            allowsCustomValue
-            inputValue={payeeText}
-            onInputChange={setPayeeText}
-          />
-          <TextField
-            label={t("tx.description")}
-            placeholder={t("tx.descriptionPlaceholder")}
-            value={description}
-            onChange={setDescription}
-          />
-          <SplitSection
-            members={members.data}
-            manual={manualSplit}
-            onManual={setManualSplit}
-            auto={autoSplit}
-            autoKey={autoSplit ? autoSourceKey(autoSplit, type, account) : "split.source.default"}
-            isPrivate={account?.visibility === "private"}
-            amountCents={amountCents}
-            invalid={errors.includes("split")}
-          />
+          {type === "transfer" ? (
+            <>
+              <Select
+                label={t("tx.fromAccount")}
+                options={activeAccounts.map((a) => ({ id: a.id, label: a.name }))}
+                value={accountId}
+                onChange={(key) => {
+                  setAccountId(key === null ? null : String(key));
+                }}
+                isInvalid={errors.includes("account") || errors.includes("sameAccount")}
+                errorMessage={t(errors.includes("sameAccount") ? "tx.error.sameAccount" : "tx.error.account")}
+              />
+              <Select
+                label={t("tx.toAccount")}
+                options={pickable(accounts.data, toAccountId)
+                  .filter((a) => a.id !== accountId)
+                  .map((a) => ({ id: a.id, label: a.name }))}
+                value={toAccountId}
+                onChange={(key) => {
+                  setToAccountId(key === null ? null : String(key));
+                }}
+                isInvalid={errors.includes("toAccount")}
+                errorMessage={t("tx.error.toAccount")}
+              />
+              <p className={cx(styles.muted)}>{t("tx.transferHelp")}</p>
+              <TextField
+                label={t("tx.description")}
+                placeholder={t("tx.descriptionPlaceholder")}
+                value={description}
+                onChange={setDescription}
+              />
+            </>
+          ) : (
+            <>
+              <Select
+                label={t("tx.category")}
+                options={categoryOptions}
+                value={categoryId}
+                onChange={(key) => {
+                  setCategoryId(key === null ? null : String(key));
+                }}
+                isInvalid={errors.includes("category")}
+                errorMessage={t("tx.error.category")}
+              />
+              <Select
+                label={t("tx.account")}
+                options={activeAccounts.map((a) => ({ id: a.id, label: a.name }))}
+                value={accountId}
+                onChange={(key) => {
+                  setAccountId(key === null ? null : String(key));
+                }}
+                isInvalid={errors.includes("account")}
+                errorMessage={t("tx.error.account")}
+              />
+              <ComboBox
+                label={t("tx.payee")}
+                description={t("tx.payeeHelp")}
+                options={payeeOptions}
+                allowsCustomValue
+                inputValue={payeeText}
+                onInputChange={setPayeeText}
+              />
+              <TextField
+                label={t("tx.description")}
+                placeholder={t("tx.descriptionPlaceholder")}
+                value={description}
+                onChange={setDescription}
+              />
+              <SplitSection
+                members={members.data}
+                manual={manualSplit}
+                onManual={setManualSplit}
+                auto={autoSplit}
+                autoKey={autoSplit ? autoSourceKey(autoSplit, entryType, account) : "split.source.default"}
+                isPrivate={account?.visibility === "private"}
+                amountCents={amountCents}
+                invalid={errors.includes("split")}
+              />
+            </>
+          )}
           {errors.length > 0 || save.isError ? (
             <ul role="alert" className={cx(styles.error)}>
               {errors.map((e) => (

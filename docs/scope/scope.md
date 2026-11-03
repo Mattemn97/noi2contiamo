@@ -23,7 +23,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 7 | Conti, categorie e destinatari | Slice 3 | done |
 | 8 | Registro movimenti con filtri e suddivisioni | Slice 4 | done |
 | 9 | Divisione spese tra i membri | Slice 5 | done |
-| 10 | Giroconti e saldo finale tra i membri | Slice 6 | planned |
+| 10 | Giroconti e saldo finale tra i membri | Slice 6 | done |
 | 11 | Import CSV con profili salvati | Slice 7 | planned |
 | 12 | Regole automatiche | Slice 8 | planned |
 | 13 | Pagamenti ricorrenti e previsioni | Slice 9 | planned |
@@ -164,10 +164,18 @@ code in `packages/core/src/{split,division}.ts`, `apps/web/src/features/split/`,
 
 ## Slice 6
 
-### 10. Giroconti e saldo finale tra i membri · needs decision
+### 10. Giroconti e saldo finale tra i membri · done
 I giroconti tra conti della famiglia (anche tra persone diverse) vengono riconosciuti e non contano come spese; un saldo finale dice chi deve quanto a chi e permette di registrare il pareggio.
 **Done when:** un giroconto non altera entrate e uscite; il saldo tra i membri tiene conto di divisioni e rimborsi; registrare un pareggio porta il saldo a zero.
-- [ ] Design it (spec): `/architect giroconti e saldo`
+spec: [0005](../specs/0005-giroconti-saldo/index.md). Scelte: la cassa comune vale per i membri secondo la divisione della famiglia; un giroconto tra membri diversi conta nel saldo anche senza `settlement`; i privati non contano; il pareggio è un giroconto con `settlement` e importo modificabile.
+code in `packages/core/src/{balance,transfers}.ts`, `apps/web/src/features/balance/`, `apps/web/src/features/transactions/{newTransaction.ts,NewTransactionPage.tsx,TransactionsPage.tsx}`, `apps/web/src/routes.tsx` (`/saldo`), `apps/web/src/features/more/pages.tsx`, `packages/data/src/contract/suite.ts` (gruppo `balance`); nessuna modifica al server né alle regole Firestore
+- [x] Design it (spec): `/architect giroconti e saldo`
+- [x] Build it: `/develop giroconti e saldo`
+  - [x] `core`: `memberBalances` (cassa comune, entrate, rimborsi, giroconti tra membri, saldo a una data e per periodo), `settlementPlan` (minimo esatto fino a 12 membri), `settlementTransfer`, `findTransferPairs`, `mergeTransferPair` (AC-3..AC-9)
+  - [x] Dati: contract suite gruppo `balance` su memory e http; firebase con lo stesso codice (non verificato: serve Java 21)
+  - [x] UI: `/saldo` con "Chi deve a chi", dettaglio, "Saldo al" e "Dal", "Registra pareggio", "Giroconti da riconoscere"; tipo "Giroconto" nel modulo nuovo e in modifica (AC-1, AC-10)
+- [x] Verify it: verificato durante il build (`npm run check`, `npm run build`, `test:contract:http` 38 passati, `npm run local` con richieste HTTP vere: il giroconto lascia i totali invariati, saldo Anna +540,00 € e Bruno −540,00 € con cassa comune 50/50 e spesa 60/40, il pareggio di Bruno porta il saldo a zero, SPA servita su `/saldo`)
+- [x] Test it: `packages/core/src/balance.test.ts`, `apps/web/src/features/balance/balance.test.tsx`, `apps/web/src/features/transactions/newTransaction.test.ts`, contract suite gruppo `balance`
 
 ## Slice 7
 

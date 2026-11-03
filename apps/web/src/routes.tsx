@@ -1,6 +1,7 @@
 // Le route della SPA (react-router in modalità data router, senza framework mode: spec 0001).
 import type { RouteObject } from "react-router";
 import { AuthPage } from "./features/auth/AuthPage";
+import { BalancePage } from "./features/balance/BalancePage";
 import { AccountsPage } from "./features/catalog/AccountsPage";
 import { CategoriesPage } from "./features/catalog/CategoriesPage";
 import { PayeesPage } from "./features/catalog/PayeesPage";
@@ -27,6 +28,7 @@ export const routes: RouteObject[] = [
           { path: "/movimenti", element: <TransactionsPage /> },
           { path: "/movimenti/nuovo", element: <NewTransactionPage /> },
           { path: "/movimenti/:id", element: <EditTransactionPage /> },
+          { path: "/saldo", element: <BalancePage /> },
           { path: "/personale", element: <PersonalPage /> },
           { path: "/altro", element: <MorePage /> },
           { path: "/altro/famiglia", element: <FamilyPage /> },
