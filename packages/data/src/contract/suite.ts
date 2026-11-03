@@ -3,6 +3,16 @@ import {
   accountBalance,
   AUDIT_KEYS,
   autoSplit,
+  columnsByHeader,
+  decodeBytes,
+  fileHash,
+  guessSettings,
+  headerSignature,
+  matchProfile,
+  parseCsv,
+  planImport,
+  readRows,
+  undoImportOps,
   memberAmounts,
   memberBalances,
   settlementPlan,
@@ -19,7 +29,7 @@ import {
   type Result,
 } from "@noi2contiamo/core";
 import { describe, expect, it } from "vitest";
-import type { CommitOp, Cursor, DataAdapter, DocOf, Page, WriteDocOf } from "../index";
+import { chunkOps, type CommitOp, type Cursor, type DataAdapter, type DocOf, type Page, type WriteDocOf } from "../index";
 
 const PASSWORD = "password-di-prova";
 
@@ -103,6 +113,7 @@ export type SuiteGroup =
   | "register"
   | "split"
   | "balance"
+  | "import"
   | "export";
 
 export interface SuiteOptions {
@@ -883,6 +894,91 @@ export function runContractSuite(name: string, makeAdapter: () => DataAdapter, o
           settlement: { fromMemberId: ownerId, toMemberId: ownerId },
         });
         expect(errorOf(result).code).toBe("invalid");
+      });
+    });
+
+    group("import", "import CSV con profili e lotti (feature 11, spec 0006)", () => {
+      const csv = [
+        "Data;Descrizione;Importo",
+        "01/10/2026;Pagamento POS COOP;-45,30",
+        "03/10/2026;Bar Sport;-1,20",
+        "03/10/2026;Bar Sport;-1,20",
+        "05/10/2026;Stipendio;1.850,00",
+      ].join("\n");
+      const file = new TextEncoder().encode(csv);
+
+      it("importa, riconosce i doppioni, riusa il profilo e annulla il lotto", async () => {
+        const { adapter, familyId, shared } = await setup(makeAdapter());
+        const settings = guessSettings(file);
+        const read = readRows(decodeBytes(file, settings.encoding), settings);
+        if (!read.ok) throw new Error(JSON.stringify(read.error));
+        const ctx = async () => ({
+          account: unwrap(await adapter.get(familyId, "accounts", shared.id)),
+          accounts: unwrap(await adapter.list(familyId, "accounts")).docs,
+          family: unwrap(await adapter.membership.myFamilies()).find((f) => f.family.id === familyId)!.family,
+          categories: unwrap(await adapter.list(familyId, "categories")).docs,
+          payees: unwrap(await adapter.list(familyId, "payees")).docs,
+          existing: unwrap(await adapter.list(familyId, "transactions", { dateFrom: "2026-09-01", dateTo: "2026-10-31" })).docs,
+        });
+        const headers = parseCsv(decodeBytes(file, settings.encoding), settings)[0]!;
+        const profileId = newId();
+        const profile: WriteDocOf<"importProfiles"> = {
+          id: profileId,
+          name: "Banca di prova",
+          defaultAccountId: shared.id,
+          ...settings,
+          columns: { ...columnsByHeader(settings.columns, headers, true), description: [{ header: "Descrizione" }] },
+          sign: { mode: settings.sign.mode },
+          headerSignature: headerSignature(headers),
+        };
+        const plan = (extra: { profile?: WriteDocOf<"importProfiles"> } = {}) =>
+          ctx().then((c) =>
+            planImport({
+              ...c,
+              rows: read.value.rows,
+              batchId: newId(),
+              profileId,
+              fileName: "prova.csv",
+              fileHash: fileHash(file),
+              nowMs: Date.now(),
+              newId,
+              ...extra,
+            }),
+          );
+        const commitAll = async (ops: readonly CommitOp[]) => {
+          for (const chunk of chunkOps(ops)) unwrap(await adapter.commit(familyId, chunk));
+        };
+
+        const first = await plan({ profile });
+        expect(first.counts).toMatchObject({ new: 4, duplicate: 0, error: 0 });
+        await commitAll(first.ops);
+        const batchId = first.batch!.id;
+        const imported = unwrap(await adapter.list(familyId, "transactions", { where: { importBatchId: batchId } })).docs;
+        expect(imported).toHaveLength(4);
+        expect(imported.every((t) => t.importFingerprints.length === 1)).toBe(true);
+        expect(unwrap(await adapter.get(familyId, "importBatches", batchId))).toMatchObject({
+          rowCount: 4,
+          importedCount: 4,
+          duplicateCount: 0,
+          dateFrom: "2026-10-01",
+          dateTo: "2026-10-05",
+          profileId,
+        });
+
+        // Il secondo file della stessa banca: profilo riconosciuto, zero doppioni salvati.
+        const profiles = unwrap(await adapter.list(familyId, "importProfiles")).docs;
+        expect(matchProfile(file, profiles, shared.id)?.id).toBe(profileId);
+        const second = await plan();
+        expect(second.counts).toMatchObject({ new: 0, duplicate: 4 });
+        expect(second.ops).toEqual([]);
+
+        // Un lotto con movimenti non si cancella da solo; l'annullamento toglie prima i movimenti.
+        expect(errorOf(await adapter.remove(familyId, "importBatches", batchId))).toEqual({ code: "conflict", reason: "in_use" });
+        expect(errorOf(await adapter.remove(familyId, "importProfiles", profileId))).toEqual({ code: "conflict", reason: "in_use" });
+        await commitAll(undoImportOps({ id: batchId }, imported));
+        expect(errorOf(await adapter.get(familyId, "importBatches", batchId)).code).toBe("not_found");
+        expect(unwrap(await adapter.list(familyId, "transactions", { where: { importBatchId: batchId } })).docs).toEqual([]);
+        expect((await plan()).counts).toMatchObject({ new: 4, duplicate: 0 });
       });
     });
 

@@ -17,8 +17,30 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql.sqltypes import Uuid
 
 from .errors import ApiError, conflict, invalid, issues_of
-from .models import Account, Base, Category, Invite, Member, Payee, Transaction, TransactionFingerprint
-from .schemas import AccountDoc, CategoryDoc, Doc, InviteDoc, MemberDoc, PayeeDoc, TransactionDoc, normalize
+from .models import (
+    Account,
+    Base,
+    Category,
+    ImportBatch,
+    ImportProfile,
+    Invite,
+    Member,
+    Payee,
+    Transaction,
+    TransactionFingerprint,
+)
+from .schemas import (
+    AccountDoc,
+    CategoryDoc,
+    Doc,
+    ImportBatchDoc,
+    ImportProfileDoc,
+    InviteDoc,
+    MemberDoc,
+    PayeeDoc,
+    TransactionDoc,
+    normalize,
+)
 from .scope import scoped
 from .security import now_ms
 
@@ -35,7 +57,8 @@ class CollectionDef:
     scoped: bool = False
 
 
-# Le collezioni del filo base (feature 5) e dei destinatari (feature 7). Le altre arrivano con le loro slice.
+# Le collezioni del filo base (feature 5), dei destinatari (feature 7) e dell'import (feature 11).
+# Le altre arrivano con le loro slice.
 COLLECTIONS: dict[str, CollectionDef] = {
     "members": CollectionDef(Member, MemberDoc, ("userId", "role"), ("id_asc",)),
     "invites": CollectionDef(Invite, InviteDoc, ("memberId",), ("id_asc",)),
@@ -52,6 +75,8 @@ COLLECTIONS: dict[str, CollectionDef] = {
         has_date=True,
         scoped=True,
     ),
+    "importProfiles": CollectionDef(ImportProfile, ImportProfileDoc, ("headerSignature",), ("id_asc",)),
+    "importBatches": CollectionDef(ImportBatch, ImportBatchDoc, ("accountId",), ("id_asc",)),
 }
 
 
@@ -86,7 +111,7 @@ def row_values(model: type[Base], doc: Doc) -> dict[str, Any]:
             continue
         value = getattr(doc, name)
         if hasattr(value, "model_dump"):
-            value = value.model_dump()
+            value = value.model_dump(exclude_none=True)
         if name in uuids and isinstance(value, str):
             try:
                 value = uuid.UUID(value)
@@ -200,6 +225,33 @@ def _check_transaction(db: Session, me: Member, tx: TransactionDoc) -> None:
         raise ApiError("invalid", issues=[{"path": "", "message": m} for m in issues])
 
 
+def _exists(db: Session, me: Member, model: Any, doc_id: str | None) -> bool:
+    if doc_id is None:
+        return True
+    return (
+        db.scalar(select(exists().where(model.family_id == me.family_id, model.id == uuid.UUID(doc_id))))
+        is True
+    )
+
+
+def _check_refs(db: Session, me: Member, doc: Doc) -> None:
+    """Riferimenti dei documenti di import (feature 11): un id inesistente è 422, non un errore SQL."""
+    refs: list[tuple[str, Any, str | None]] = []
+    if isinstance(doc, TransactionDoc):
+        refs.append(("importBatchId", ImportBatch, doc.import_batch_id))
+    elif isinstance(doc, ImportBatchDoc):
+        refs += [("accountId", Account, doc.account_id), ("profileId", ImportProfile, doc.profile_id)]
+    elif isinstance(doc, ImportProfileDoc):
+        refs.append(("defaultAccountId", Account, doc.default_account_id))
+    issues = [
+        {"path": path, "message": "documento inesistente"}
+        for path, model, ref in refs
+        if not _exists(db, me, model, ref)
+    ]
+    if issues:
+        raise ApiError("invalid", issues=issues)
+
+
 def _check_catalog(db: Session, me: Member, collection: str, values: dict[str, Any]) -> None:
     """Nomi unici e un solo livello di categorie (come `nameTaken` e `checkCategory` di core, feature 7)."""
     model: Any = COLLECTIONS[collection].model
@@ -278,6 +330,7 @@ def put(db: Session, collection: str, me: Member, raw: dict[str, Any]) -> dict[s
         _check_member_write(me, values, prev_values)
     if isinstance(doc, TransactionDoc):
         _check_transaction(db, me, doc)
+    _check_refs(db, me, doc)
     if collection in ("accounts", "categories", "payees"):
         _check_catalog(db, me, collection, values)
 
@@ -368,6 +421,31 @@ def remove(db: Session, collection: str, me: Member, doc_id: str) -> None:
         )
     elif collection == "payees":
         used = bool(db.scalar(select(exists().where(in_family, Transaction.payee_id == row.id))))
+    elif collection == "importBatches":
+        used = bool(db.scalar(select(exists().where(in_family, Transaction.import_batch_id == row.id))))
+    elif collection == "importProfiles":
+        used = bool(
+            db.scalar(
+                select(
+                    exists().where(ImportBatch.family_id == me.family_id, ImportBatch.profile_id == row.id)
+                )
+            )
+        )
+    if collection == "accounts" and not used:
+        used = bool(
+            db.scalar(
+                select(
+                    exists().where(ImportBatch.family_id == me.family_id, ImportBatch.account_id == row.id)
+                )
+            )
+            or db.scalar(
+                select(
+                    exists().where(
+                        ImportProfile.family_id == me.family_id, ImportProfile.default_account_id == row.id
+                    )
+                )
+            )
+        )
     elif collection == "categories":
         used = bool(
             db.scalar(select(exists().where(in_family, Transaction.category_id == row.id)))

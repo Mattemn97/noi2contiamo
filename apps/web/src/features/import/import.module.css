@@ -1,0 +1,98 @@
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  counter-reset: step;
+}
+
+.steps li {
+  counter-increment: step;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.steps li::before {
+  content: counter(step) ". ";
+}
+
+.steps li[data-done] {
+  border-color: var(--color-accent);
+}
+
+.steps li[aria-current="step"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.file {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.label {
+  font-weight: 600;
+}
+
+.file input {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  align-items: end;
+}
+
+.scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.fieldset legend {
+  font-weight: 600;
+  padding: 0 var(--space-1);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

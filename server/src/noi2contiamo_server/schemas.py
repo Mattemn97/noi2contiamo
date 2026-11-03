@@ -195,6 +195,62 @@ class TransactionDoc(Doc):
         return self
 
 
+class ColHeader(Strict):
+    header: Annotated[str, StringConstraints(min_length=1)]
+
+
+class ColIndex(Strict):
+    index: Annotated[StrictInt, Field(ge=0)]
+
+
+ColRef = ColHeader | ColIndex
+
+
+class ImportColumns(Strict):
+    date: ColRef
+    description: Annotated[list[ColRef], Field(min_length=1)]
+    amount: ColRef | None = None
+    debit: ColRef | None = None
+    credit: ColRef | None = None
+    payee: ColRef | None = None
+    type: ColRef | None = None
+
+
+class ImportSign(Strict):
+    mode: Literal["negativeIsExpense", "positiveIsExpense", "debitCreditColumns", "typeColumn"]
+    expenseValues: list[str] | None = None
+    incomeValues: list[str] | None = None
+
+
+class ImportProfileDoc(Doc):
+    name: Name
+    default_account_id: Id | None = None
+    encoding: Literal["utf-8", "windows-1252", "iso-8859-1"] = "utf-8"
+    delimiter: Literal[",", ";", "\t"]
+    quote: Annotated[str, StringConstraints(min_length=1, max_length=1)] = '"'
+    skip_rows: Annotated[StrictInt, Field(ge=0)] = 0
+    has_header: StrictBool
+    header_signature: Annotated[str, StringConstraints(max_length=128)] | None = None
+    columns: ImportColumns
+    date_format: Annotated[str, StringConstraints(min_length=1, max_length=32)]
+    decimal_separator: Literal[",", "."]
+    thousands_separator: Literal[".", ",", " ", ""]
+    sign: ImportSign
+
+
+class ImportBatchDoc(Doc):
+    profile_id: Id | None = None
+    account_id: Id
+    file_name: Annotated[str, StringConstraints(min_length=1, max_length=255)]
+    file_hash: Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+    row_count: Annotated[StrictInt, Field(ge=0)]
+    imported_count: Annotated[StrictInt, Field(ge=0)]
+    duplicate_count: Annotated[StrictInt, Field(ge=0)]
+    date_from: IsoDate
+    date_to: IsoDate
+    imported_at_ms: Ms
+
+
 def transaction_shape_issues(tx: TransactionDoc) -> list[str]:
     """Le invarianti del movimento che non chiedono altri documenti (come `transactionShapeIssues`)."""
     issues: list[str] = []

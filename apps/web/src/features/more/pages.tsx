@@ -152,6 +152,16 @@ export function MorePage() {
             </div>
           </div>
         </Card>
+        <Card title={t("import.more")} as="section">
+          <div className={cx(styles.stack)}>
+            <p className={cx(styles.muted)}>{t("import.moreHelp")}</p>
+            <div className={cx(styles.actions)}>
+              <Button variant="secondary" onPress={() => void navigate("/importa")}>
+                {t("import.open")}
+              </Button>
+            </div>
+          </div>
+        </Card>
         <Card title={t("theme.label")} as="section">
           <ThemeSwitcher />
         </Card>

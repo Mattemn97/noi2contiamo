@@ -1,0 +1,7 @@
+Data;Nome;Tipo;Importo;Stato
+02-10-2026;Bar Centrale;Pagamento;1,50;Completato
+03-10-2026;Bruno Bianchi;Ricevuto;12,00;Completato
+04-10-2026;Ricarica da IBAN;Ricarica;50,00;Completato
+06-10-2026;Panificio Rossi;Pagamento;3,80;Completato
+07-10-2026;Distributore Q8;Pagamento;40,00;Completato
+08-10-2026;Negozio sconosciuto;Storno;5,00;Annullato

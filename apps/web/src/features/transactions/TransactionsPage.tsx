@@ -271,12 +271,17 @@ export function TransactionsPage() {
   }, [names, navigate, location.pathname, location.search]);
 
   const add = (
-    <Button
-      icon={<Plus aria-hidden="true" size={20} strokeWidth={1.75} />}
-      onPress={() => void navigate("/movimenti/nuovo")}
-    >
-      {t("tx.add")}
-    </Button>
+    <>
+      <Button variant="secondary" onPress={() => void navigate("/importa")}>
+        {t("import.open")}
+      </Button>
+      <Button
+        icon={<Plus aria-hidden="true" size={20} strokeWidth={1.75} />}
+        onPress={() => void navigate("/movimenti/nuovo")}
+      >
+        {t("tx.add")}
+      </Button>
+    </>
   );
 
   const lookups = [accounts, categories, payees, members];

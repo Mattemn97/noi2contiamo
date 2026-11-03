@@ -24,7 +24,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 8 | Registro movimenti con filtri e suddivisioni | Slice 4 | done |
 | 9 | Divisione spese tra i membri | Slice 5 | done |
 | 10 | Giroconti e saldo finale tra i membri | Slice 6 | done |
-| 11 | Import CSV con profili salvati | Slice 7 | planned |
+| 11 | Import CSV con profili salvati | Slice 7 | done |
 | 12 | Regole automatiche | Slice 8 | planned |
 | 13 | Pagamenti ricorrenti e previsioni | Slice 9 | planned |
 | 14 | Dashboard di coppia | Slice 10 | planned |
@@ -179,10 +179,19 @@ code in `packages/core/src/{balance,transfers}.ts`, `apps/web/src/features/balan
 
 ## Slice 7
 
-### 11. Import CSV con profili salvati · needs decision
+### 11. Import CSV con profili salvati · done
 Import degli estratti movimenti di banche e servizi (CSV con formati diversi). Mappi le colonne una volta e salvi il profilo, così il prossimo import dalla stessa banca è immediato. Anteprima prima di confermare e niente duplicati.
 **Done when:** importi un CSV di una banca, salvi il profilo, e il secondo file della stessa banca si importa senza rimappare; date, importi con virgola e segni diversi vengono letti bene; i movimenti già presenti non vengono duplicati.
-- [ ] Design it (spec): `/architect import csv`
+spec: [0006](../specs/0006-import-csv/index.md). Scelte: il CSV si legge nel browser con `core` e non lascia il dispositivo; lotto scritto prima dei movimenti; un giroconto unito resta sul movimento esistente (stesso id) e non sparisce annullando il lotto nuovo; aggancio `hook` per le regole del feature 12.
+code in `packages/core/src/import/` (con le fixture `fixtures/*.csv`), `apps/web/src/features/import/`, `apps/web/src/routes.tsx` (`/importa`), `server/src/noi2contiamo_server/{schemas,store}.py`, `packages/data/src/{memory,firebase}.ts`, `firebase/firestore.indexes.json`, `packages/data/src/contract/suite.ts` (gruppo `import`)
+- [x] Design it (spec): `/architect import csv`
+- [x] Build it: `/develop import csv`
+  - [x] `core`: decodifica (UTF-8, BOM, Windows-1252), CSV, date, importi, intestazione, proposta delle colonne, profili con firma (AC-1..AC-8)
+  - [x] `core`: `planImport` (doppioni, lotto, destinatari, divisione, giroconti, hook) e `undoImportOps` (AC-9..AC-14)
+  - [x] Dati: server (profili e lotti, riferimenti 422, `in_use`), memory, firebase (impronte e `in_use`, non verificato: serve Java 21), contract suite gruppo `import` (AC-15)
+  - [x] UI: `/importa` con File, Colonne, Anteprima, Conferma, Risultato, "Salva profilo", storico con "Annulla import" (AC-16)
+- [x] Verify it: verificato durante il build (`npm run check`, `npm run build`, `test:contract:http` 39 passati, `npm run local` con richieste HTTP vere: primo import 8 nuovi e 2 errori con profilo salvato, secondo import profilo riconosciuto e 0 nuovi su 8 doppioni, lotto con movimenti rifiutato con `in_use`, annullamento a zero movimenti, reimport di nuovo 8 nuovi, SPA servita su `/importa`)
+- [x] Test it: `packages/core/src/import/import.test.ts` (4 fixture), `apps/web/src/features/import/import.test.tsx` (procedura e axe), contract suite gruppo `import`, `server/tests/test_import.py`
 
 ## Slice 8
 

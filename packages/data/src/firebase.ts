@@ -183,6 +183,7 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
         payee: tx.payeeId ? ((await readDoc(familyId, "payees", tx.payeeId)) as Payee | null) : null,
       });
       if (!checked.ok) return err({ code: "invalid", issues: checked.error.map((message) => ({ path: "", message })) });
+      if (await fingerprintTaken(familyId, tx, me)) return err({ code: "conflict", reason: "duplicate_fingerprint" });
     }
     if (c === "accounts" || c === "categories" || c === "payees") {
       // Nomi unici e un solo livello di categorie: le regole non leggono le altre righe, lo fa l'adapter.
@@ -203,6 +204,40 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
       }
     }
     return ok(next);
+  }
+
+  /** Import (spec 0006): un lotto con movimenti, un profilo con lotti, un conto con lotti o profili. */
+  async function importInUse(familyId: string, c: CollectionName, id: string, me: Access): Promise<boolean> {
+    const any = async (name: CollectionName, field: string, constraints: QueryConstraint[] = []) =>
+      !(await getDocs(fsQuery(coll(db, "families", familyId, name), ...constraints, fsWhere(field, "==", id), qLimit(1))))
+        .empty;
+    if (c === "importBatches") {
+      for (const scope of scopes("transactions", undefined, me)) if (await any("transactions", "importBatchId", scope)) return true;
+      return false;
+    }
+    if (c === "importProfiles") return any("importBatches", "profileId");
+    if (c === "accounts") return (await any("importBatches", "accountId")) || (await any("importProfiles", "defaultAccountId"));
+    return false;
+  }
+
+  /**
+   * Impronte di import già usate (spec 0002, AC-6): le regole non leggono le altre righe, lo controlla
+   * l'adapter. `array-contains-any` accetta al massimo 30 valori; un movimento ne ha al più 2.
+   */
+  async function fingerprintTaken(familyId: string, tx: Transaction, me: Access): Promise<boolean> {
+    if (tx.importFingerprints.length === 0) return false;
+    for (const scope of scopes("transactions", undefined, me)) {
+      const snap = await getDocs(
+        fsQuery(
+          coll(db, "families", familyId, "transactions"),
+          ...scope,
+          fsWhere("importFingerprints", "array-contains-any", tx.importFingerprints),
+          qLimit(2),
+        ),
+      );
+      if (snap.docs.some((d) => d.id !== tx.id)) return true;
+    }
+    return false;
   }
 
   /** Movimenti e conti: le regole vogliono sempre il vincolo di visibilità nella query. */
@@ -660,6 +695,7 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
             .empty;
         if (children || used.some((s) => !s.empty)) return err({ code: "conflict", reason: "in_use" });
       }
+      if (await importInUse(familyId, collection, id, access.value)) return err({ code: "conflict", reason: "in_use" });
       try {
         const batch = writeBatch(db);
         batch.delete(docRef(familyId, collection, id));

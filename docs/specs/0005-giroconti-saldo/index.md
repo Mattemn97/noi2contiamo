@@ -103,7 +103,7 @@ Ordine Tracer Bullet: prima il saldo con il pareggio da un capo all'altro, poi i
 
 ## Follow-up
 
-- [ ] Feature 11: passare le righe importate da `findTransferPairs` prima di salvarle.
+- [x] Feature 11: passare le righe importate da `findTransferPairs` prima di salvarle (spec 0006, AC-13).
 - [ ] Feature 14: riusare `memberBalances` nella dashboard; feature 19: soglia di `settings.notifications.settlement`.
 - [ ] Valutare una divisione propria per ogni conto comune, se la famiglia ne ha più d'uno con quote diverse.
 

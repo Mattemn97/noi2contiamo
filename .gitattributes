@@ -2,3 +2,5 @@
 * text=auto eol=lf
 *.png binary
 *.db binary
+# Fixture CSV di import: byte esatti (Windows-1252, BOM, CRLF), git non li tocca.
+packages/core/src/import/fixtures/*.csv -text

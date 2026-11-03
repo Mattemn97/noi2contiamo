@@ -240,7 +240,13 @@ export function createMemoryAdapter(options: { now?: () => number } = {}): DataA
       (collection === "accounts" && txs.some((t) => t.accountId === id || t.toAccountId === id)) ||
       (collection === "categories" &&
         (txs.some((t) => t.categoryId === id) || [...fs.docs.categories.values()].some((c) => c.parentId === id))) ||
-      (collection === "payees" && txs.some((t) => t.payeeId === id));
+      (collection === "payees" && txs.some((t) => t.payeeId === id)) ||
+      // Import (spec 0006): un lotto con movimenti, un profilo con lotti, un conto con lotti o profili.
+      (collection === "importBatches" && txs.some((t) => t.importBatchId === id)) ||
+      (collection === "importProfiles" && [...fs.docs.importBatches.values()].some((b) => b.profileId === id)) ||
+      (collection === "accounts" &&
+        ([...fs.docs.importBatches.values()].some((b) => b.accountId === id) ||
+          [...fs.docs.importProfiles.values()].some((p) => p.defaultAccountId === id)));
     if (used) return conflict("in_use");
     fs.docs[collection].delete(id);
     return ok(undefined);
