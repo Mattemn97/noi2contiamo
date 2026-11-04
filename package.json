@@ -1,16 +1,34 @@
 {
   "name": "noi2contiamo",
   "private": true,
-  "version": "1.0.0",
-  "description": "Contabilità di coppia e di famiglia, open source e self hosted.",
+  "version": "0.1.0",
+  "description": "Contabilità di coppia e di famiglia, open source e self hosted: spese condivise, import CSV, regole automatiche, dashboard.",
   "license": "MIT",
   "author": "Matteo Filippini",
+  "homepage": "https://github.com/Mattemn97/noi2contiamo#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mattemn97/noi2contiamo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mattemn97/noi2contiamo/issues"
+  },
   "keywords": [
-    "finanze",
+    "finanze-personali",
+    "contabilita",
     "famiglia",
+    "coppia",
+    "spese-condivise",
     "budget",
+    "personal-finance",
+    "expense-tracker",
+    "expense-sharing",
     "self-hosted",
-    "pwa"
+    "pwa",
+    "react",
+    "typescript",
+    "fastapi",
+    "firebase"
   ],
   "type": "module",
   "workspaces": [

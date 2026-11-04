@@ -1,8 +1,23 @@
 # Noi2Contiamo
 
+[![Licenza MIT](https://img.shields.io/github/license/Mattemn97/noi2contiamo)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/Mattemn97/noi2contiamo)](https://github.com/Mattemn97/noi2contiamo/releases)
+
 Web app open source per tenere la contabilità di coppia e di famiglia. Ognuno si registra, crea o entra in una famiglia, registra o importa i movimenti, divide le spese e vede chi deve quanto a chi. Pensata per uso privato e da installare in casa (self hosted), senza abbonamenti. L'interfaccia è in italiano, funziona da telefono (PWA) ed è disponibile in tema chiaro e scuro.
 
 Licenza [MIT](./LICENSE).
+
+> **English summary.** Noi2Contiamo is an open source, self hosted personal finance app for couples and families: shared expense splitting, member balance settlement, bank CSV import with saved profiles, automatic rules, recurring payments and forecasts, dashboards, PDF and CSV reports. React + TypeScript PWA, with a Python (FastAPI + SQLite) server or Firebase free plan. The interface is in Italian.
+
+## Stato del progetto
+
+Versione iniziale `0.1.0`. La modalità con server Python è quella provata. Non sono ancora stati provati su un'installazione reale:
+
+- la modalità Firebase (codice scritto, test dell'emulatore da eseguire con Java 21, deploy mai fatto);
+- l'immagine Docker e `compose.yaml`;
+- l'invio vero di email e Telegram.
+
+Se ne provi una e qualcosa non va, apri una [issue](https://github.com/Mattemn97/noi2contiamo/issues).
 
 ## Cosa fa
 

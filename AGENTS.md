@@ -55,7 +55,7 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 
 ## Agent skills
 
-Workflow skills in `.claude/skills/` (`jsmastery-pro/skills`): architect, audit, check, debug, develop, document, scope, sync, test. Nessuna skill di stack installata.
+Le skill di workflow sono locali e non stanno nel repository: `.claude/` è in `.gitignore`.
 
 ## Context files
 
