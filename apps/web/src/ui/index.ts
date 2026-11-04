@@ -15,6 +15,7 @@ export { ComboBox, Select, type Option } from "./Select/Select";
 export { EmptyState, ErrorState, Skeleton } from "./States/States";
 export { StatusBadge, type Status } from "./StatusBadge/StatusBadge";
 export { SearchField, TextField } from "./TextField/TextField";
+export { AccentPicker } from "./AccentPicker/AccentPicker";
 export { ThemeSwitcher } from "./ThemeSwitcher/ThemeSwitcher";
 export { useToast, type ToastInput } from "./Toast/Toast";
 export { UiProvider } from "./UiProvider";

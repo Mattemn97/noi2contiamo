@@ -21,8 +21,6 @@
 
 .main {
   inline-size: 100%;
-  max-inline-size: var(--content-max);
-  margin-inline: auto;
   padding: var(--space-6) var(--space-4)
     calc(var(--nav-height) + var(--space-8) + env(safe-area-inset-bottom));
   outline: none;
@@ -38,7 +36,8 @@
   padding-block-end: env(safe-area-inset-bottom);
 }
 
-.brand {
+.brand,
+.appearance {
   display: none;
 }
 
@@ -111,13 +110,16 @@
 @media (min-width: 64rem) {
   .shell {
     display: grid;
-    grid-template-columns: 15rem 1fr;
+    grid-template-columns: 16rem minmax(0, 1fr);
   }
 
   .nav {
     position: sticky;
+    display: flex;
+    flex-direction: column;
     inset-block: 0;
     block-size: 100dvh;
+    overflow-y: auto;
     border-block-start: 0;
     border-inline-end: 1px solid var(--color-border);
     background: var(--color-surface);
@@ -131,6 +133,13 @@
     line-height: var(--leading-lg);
     font-weight: var(--weight-semibold);
     color: var(--color-accent);
+  }
+
+  .appearance {
+    display: grid;
+    gap: var(--space-4);
+    margin-block-start: auto;
+    padding: var(--space-6) var(--space-3) 0;
   }
 
   .navList {
@@ -175,7 +184,6 @@
   }
 
   .main {
-    margin-inline: 0;
     padding: var(--space-8) var(--space-8) var(--space-12);
   }
 }

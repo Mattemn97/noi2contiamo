@@ -2,7 +2,9 @@
 import { LayoutDashboard, List, MoreHorizontal, Plus, User, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { t, type MessageKey } from "../../i18n/it";
+import { AccentPicker } from "../AccentPicker/AccentPicker";
 import { cx } from "../cx";
+import { ThemeSwitcher } from "../ThemeSwitcher/ThemeSwitcher";
 import styles from "./AppShell.module.css";
 
 export type NavId = "overview" | "transactions" | "add" | "personal" | "more";
@@ -55,6 +57,10 @@ export function AppShell({ current, badges, children }: AppShellProps) {
             </li>
           ))}
         </ul>
+        <div className={cx(styles.appearance)}>
+          <ThemeSwitcher />
+          <AccentPicker />
+        </div>
       </nav>
       <main id={MAIN_ID} tabIndex={-1} className={cx(styles.main)}>
         {children}

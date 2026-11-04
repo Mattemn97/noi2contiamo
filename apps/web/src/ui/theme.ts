@@ -1,6 +1,6 @@
 // Preferenza del tema: leggi, salva, applica. La scelta vale per il dispositivo (localStorage `n2c.theme`).
 // Lo script in linea di index.html fa la stessa lettura prima del primo disegno (niente lampo).
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 export type ThemePreference = "system" | "light" | "dark";
 
@@ -60,12 +60,69 @@ export function applyThemePreference(
   syncThemeColor(root);
 }
 
-/** Stato React della preferenza: applica subito, salva, e segue il sistema quando la scelta è "Sistema". */
+export type AccentPreference = "green" | "blue" | "violet" | "pink" | "orange" | "graphite";
+
+export const ACCENT_KEY = "n2c.accent";
+export const ACCENT_PREFERENCES: readonly AccentPreference[] = [
+  "green",
+  "blue",
+  "violet",
+  "pink",
+  "orange",
+  "graphite",
+];
+
+export function parseAccentPreference(raw: string | null | undefined): AccentPreference {
+  return ACCENT_PREFERENCES.find((accent) => accent === raw) ?? "green";
+}
+
+export function saveAccentPreference(
+  preference: AccentPreference,
+  storage: Pick<Storage, "setItem" | "removeItem"> | undefined = safeStorage(),
+): void {
+  try {
+    if (preference === "green") storage?.removeItem(ACCENT_KEY);
+    else storage?.setItem(ACCENT_KEY, preference);
+  } catch {
+    // Archivio non disponibile: il colore vale solo per questa sessione.
+  }
+}
+
+/** Mette `data-accent` su <html>; il verde è il colore di base e non ha attributo. */
+export function applyAccentPreference(
+  preference: AccentPreference,
+  root: HTMLElement = document.documentElement,
+): void {
+  if (preference === "green") root.removeAttribute("data-accent");
+  else root.setAttribute("data-accent", preference);
+}
+
+// Gli attributi su <html> sono la fonte di verità: più selettori nella stessa pagina restano allineati.
+const APPEARANCE_CHANGE = "n2c:appearance";
+
+function subscribeAppearance(onChange: () => void): () => void {
+  window.addEventListener(APPEARANCE_CHANGE, onChange);
+  return () => {
+    window.removeEventListener(APPEARANCE_CHANGE, onChange);
+  };
+}
+
+function announceAppearance(): void {
+  window.dispatchEvent(new Event(APPEARANCE_CHANGE));
+}
+
+const currentTheme = (): ThemePreference =>
+  parseThemePreference(document.documentElement.getAttribute("data-theme"));
+
+const currentAccent = (): AccentPreference =>
+  parseAccentPreference(document.documentElement.getAttribute("data-accent"));
+
+/** Stato React del tema: applica subito, salva, e segue il sistema quando la scelta è "Sistema". */
 export function useThemePreference(): readonly [ThemePreference, (next: ThemePreference) => void] {
-  const [preference, setPreference] = useState<ThemePreference>(() => readThemePreference());
+  const preference = useSyncExternalStore(subscribeAppearance, currentTheme);
 
   useEffect(() => {
-    applyThemePreference(preference);
+    syncThemeColor();
     const query = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = (): void => {
       syncThemeColor();
@@ -78,7 +135,21 @@ export function useThemePreference(): readonly [ThemePreference, (next: ThemePre
 
   const update = useCallback((next: ThemePreference) => {
     saveThemePreference(next);
-    setPreference(next);
+    applyThemePreference(next);
+    announceAppearance();
+  }, []);
+
+  return [preference, update] as const;
+}
+
+/** Stato React del colore principale: applica subito e ricorda la scelta sul dispositivo. */
+export function useAccentPreference(): readonly [AccentPreference, (next: AccentPreference) => void] {
+  const preference = useSyncExternalStore(subscribeAppearance, currentAccent);
+
+  const update = useCallback((next: AccentPreference) => {
+    saveAccentPreference(next);
+    applyAccentPreference(next);
+    announceAppearance();
   }, []);
 
   return [preference, update] as const;

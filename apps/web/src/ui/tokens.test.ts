@@ -19,8 +19,8 @@ const css = readFileSync(resolve(SRC, "ui/tokens.css"), "utf8");
 const cssValues = themeValuesFromCss(css);
 
 // Token tecnici che design.md descrive a parole ma non nomina: interlinea della tabella tipografica,
-// stack del font, larghezza massima del contenuto, altezza della barra in basso.
-const DERIVED = /^--(leading-[a-z0-9]+|font-sans|content-max|nav-height)$/;
+// stack del font, altezza della barra in basso.
+const DERIVED = /^--(leading-[a-z0-9]+|font-sans|nav-height)$/;
 
 describe("AC-1: tokens.css rispecchia docs/design.md", () => {
   it("ogni token citato in design.md esiste in tokens.css", () => {
@@ -116,7 +116,10 @@ describe("AC-4: nessun colore scritto a mano fuori da tokens.css", () => {
       return statSync(path).isDirectory() ? files(path) : [path];
     });
   const sources = files(SRC).filter(
-    (path) => /\.(css|tsx)$/.test(path) && !path.endsWith(join("ui", "tokens.css")),
+    (path) =>
+      /\.(css|tsx)$/.test(path) &&
+      !path.endsWith(join("ui", "tokens.css")) &&
+      !path.endsWith(join("ui", "accents.css")),
   );
 
   it("scansiona davvero i sorgenti", () => {

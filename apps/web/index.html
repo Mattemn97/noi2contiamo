@@ -14,6 +14,9 @@
       try {
         var theme = localStorage.getItem("n2c.theme");
         if (theme === "light" || theme === "dark") document.documentElement.setAttribute("data-theme", theme);
+        var accent = localStorage.getItem("n2c.accent");
+        if (/^(blue|violet|pink|orange|graphite)$/.test(accent))
+          document.documentElement.setAttribute("data-accent", accent);
       } catch (error) {}
     </script>
   </head>

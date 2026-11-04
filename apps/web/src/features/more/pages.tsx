@@ -5,7 +5,16 @@ import { useNavigate } from "react-router";
 import { useAdapter } from "../../data/AdapterContext";
 import { useResetAfterAuth, useSession } from "../../data/queries";
 import { t } from "../../i18n/it";
-import { Button, Card, EmptyState, PageHeader, StatusBadge, ThemeSwitcher, type Status } from "../../ui";
+import {
+  AccentPicker,
+  Button,
+  Card,
+  EmptyState,
+  PageHeader,
+  StatusBadge,
+  ThemeSwitcher,
+  type Status,
+} from "../../ui";
 import { cx } from "../../ui/cx";
 import styles from "../layout.module.css";
 
@@ -159,8 +168,11 @@ export function MorePage() {
             </div>
           </div>
         </Card>
-        <Card title={t("theme.label")} as="section">
-          <ThemeSwitcher />
+        <Card title={t("theme.appearance")} as="section">
+          <div className={cx(styles.stack)}>
+            <ThemeSwitcher />
+            <AccentPicker />
+          </div>
         </Card>
         <ServerStatus />
       </div>
