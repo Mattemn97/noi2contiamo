@@ -1,0 +1,9 @@
+.amount {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.amount[data-kind="income"] {
+  color: var(--color-success-text);
+}

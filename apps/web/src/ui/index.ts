@@ -1,0 +1,21 @@
+// Unico punto d'ingresso dei componenti: le pagine importano da qui (i grafici da ui/charts).
+export { Amount, amountText, type AmountKind } from "./Amount/Amount";
+export { AppShell, NAV_ITEMS, type NavId } from "./AppShell/AppShell";
+export { Button, IconButton, type ButtonVariant } from "./Button/Button";
+export { Card, StatTile, type Trend } from "./Card/Card";
+export { Checkbox, RadioGroup, SegmentedControl, Switch, Tabs } from "./Choice/Choice";
+export { DatePicker, DateRangePicker, shortcutRange, type PeriodShortcut } from "./DatePicker/DatePicker";
+export { ConfirmDialog, Dialog, Sheet } from "./Dialog/Dialog";
+export { FilterBar, type Chip } from "./FilterBar/FilterBar";
+export { DataTable, type DataTableColumn } from "./DataTable/DataTable";
+export { Link, Menu, Tooltip, type MenuAction } from "./Menu/Menu";
+export { MoneyField, PercentField } from "./MoneyField/MoneyField";
+export { PageHeader } from "./PageHeader/PageHeader";
+export { ComboBox, Select, type Option } from "./Select/Select";
+export { EmptyState, ErrorState, Skeleton } from "./States/States";
+export { StatusBadge, type Status } from "./StatusBadge/StatusBadge";
+export { SearchField, TextField } from "./TextField/TextField";
+export { ThemeSwitcher } from "./ThemeSwitcher/ThemeSwitcher";
+export { useToast, type ToastInput } from "./Toast/Toast";
+export { UiProvider } from "./UiProvider";
+export * from "./format";

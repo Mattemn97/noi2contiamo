@@ -1,0 +1,149 @@
+.frame {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-inline-size: 0;
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--chart-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: var(--text-lg);
+  line-height: var(--leading-lg);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  inline-size: 0.75rem;
+  block-size: 0.75rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+}
+
+.swatch[data-kind="compare"] {
+  opacity: 0.8;
+}
+
+.plot {
+  inline-size: 100%;
+  block-size: 15rem;
+  min-inline-size: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.plot :global(.recharts-cartesian-axis-tick-value) {
+  fill: var(--chart-label);
+}
+
+.plot :global(.recharts-surface) {
+  overflow: visible;
+}
+
+.table {
+  overflow-x: auto;
+}
+
+.dataTable {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.dataTable th,
+.dataTable td {
+  padding: var(--space-2) var(--space-3);
+  border-block-end: 1px solid var(--color-border);
+  text-align: start;
+  font-weight: var(--weight-regular);
+}
+
+.dataTable thead th {
+  color: var(--color-text-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.dataTable [data-align="end"] {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip {
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+}
+
+.tooltipLabel {
+  font-weight: var(--weight-semibold);
+  margin-block-end: var(--space-1);
+}
+
+.tooltipList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tooltipValue {
+  margin-inline-start: auto;
+  padding-inline-start: var(--space-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Contrasto elevato e stampa: riempimento a righe, mai attivo di default (regola 12). */
+@media (forced-colors: active), print {
+  .plot :global(.recharts-bar-rectangle path),
+  .plot :global(.recharts-area-area) {
+    fill: url(#n2c-hatch-45);
+    stroke: CanvasText;
+  }
+
+  .plot :global(.recharts-bar:nth-of-type(even) .recharts-bar-rectangle path) {
+    fill: url(#n2c-hatch-135);
+  }
+
+  .plot :global(.recharts-line-curve) {
+    stroke: CanvasText;
+  }
+
+  .swatch {
+    border: 1px solid CanvasText;
+  }
+}

@@ -1,0 +1,210 @@
+/* Stile comune dei campi (etichetta, controllo, aiuto, errore) e dei popover dei campi. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-inline-size: 0;
+}
+
+.label {
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text);
+}
+
+.description {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  color: var(--color-danger-text);
+}
+
+/* Contenitore visivo del controllo: input, gruppo data, bottone del select. */
+.control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-block-size: 2.75rem;
+  inline-size: 100%;
+  padding-inline: var(--space-3);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  text-align: start;
+}
+
+.control[data-focus-within],
+.control[data-focus-visible],
+.input[data-focused] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.control[data-invalid],
+.input[data-invalid] {
+  border-color: var(--color-danger-text);
+}
+
+.control[data-disabled],
+.input[data-disabled] {
+  opacity: 0.5;
+}
+
+.input {
+  composes: control;
+  font: inherit;
+  font-size: var(--text-md);
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.input[data-focused] {
+  outline-offset: 2px;
+}
+
+/* Input dentro un controllo con prefisso o suffisso: il bordo e il focus sono del contenitore. */
+.bare {
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 2.625rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  outline: none;
+}
+
+.money {
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.adornment {
+  color: var(--color-text-secondary);
+  flex: none;
+}
+
+.adornment svg {
+  display: block;
+}
+
+.value {
+  flex: 1;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value[data-placeholder] {
+  color: var(--color-text-tertiary);
+}
+
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 2.75rem;
+  min-block-size: 2.625rem;
+  margin-inline-end: calc(var(--space-3) * -1);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.trigger[data-focus-visible] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.segments {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.segment {
+  padding-inline: 1px;
+  border-radius: var(--radius-sm);
+}
+
+.segment[data-placeholder] {
+  color: var(--color-text-tertiary);
+}
+
+.segment[data-type="literal"] {
+  color: var(--color-text-secondary);
+}
+
+.segment[data-focused] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  outline: none;
+}
+
+.popover {
+  min-inline-size: var(--trigger-width);
+  max-inline-size: calc(100vw - var(--space-8));
+  padding: var(--space-1);
+  background: var(--color-surface-raised);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-1);
+  overflow: auto;
+}
+
+.listbox {
+  outline: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  outline: none;
+}
+
+.option[data-focused] {
+  background: var(--color-surface-sunken);
+}
+
+.option[data-focus-visible] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+
+.option[data-selected] {
+  background: var(--color-accent-subtle);
+  font-weight: var(--weight-medium);
+}
+
+@media (forced-colors: active) {
+  .control,
+  .input {
+    border-color: ButtonText;
+  }
+
+  .option[data-focused],
+  .segment[data-focused] {
+    outline: 2px solid Highlight;
+  }
+}

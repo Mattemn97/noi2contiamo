@@ -1,0 +1,40 @@
+.stack {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+  max-width: 32rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+.error {
+  color: var(--color-danger-text);
+}
+
+.center {
+  min-height: 100dvh;
+  display: grid;
+  place-items: start center;
+  padding: var(--space-8) var(--space-4);
+  background: var(--color-page);
+}
+
+.narrow {
+  width: 100%;
+  max-width: 28rem;
+  display: grid;
+  gap: var(--space-4);
+}

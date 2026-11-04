@@ -1,0 +1,84 @@
+/* Solo token; gli stati arrivano dagli attributi data-* di React Aria. */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-block-size: 2.75rem;
+  min-inline-size: 2.75rem;
+  padding-inline: var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font: var(--weight-medium) var(--text-md) / var(--leading-md) var(--font-sans);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.button[data-size="sm"] {
+  min-block-size: 2rem;
+  min-inline-size: 2rem;
+  padding-inline: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.button[data-icon-only] {
+  padding-inline: 0;
+}
+
+.button[data-variant="primary"] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.button[data-variant="primary"][data-hovered],
+.button[data-variant="primary"][data-pressed] {
+  background: var(--color-accent-hover);
+}
+
+.button[data-variant="secondary"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-color: var(--color-border-strong);
+}
+
+.button[data-variant="secondary"][data-hovered],
+.button[data-variant="secondary"][data-pressed],
+.button[data-variant="ghost"][data-hovered],
+.button[data-variant="ghost"][data-pressed] {
+  background: var(--color-surface-sunken);
+}
+
+.button[data-variant="ghost"] {
+  background: transparent;
+  color: var(--color-text);
+}
+
+.button[data-variant="danger"] {
+  background: var(--color-danger);
+  color: var(--color-on-danger);
+}
+
+.button[data-focus-visible] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.button[data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button svg {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  flex: none;
+}
+
+@media (forced-colors: active) {
+  .button {
+    border-color: ButtonText;
+  }
+}

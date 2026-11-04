@@ -1,0 +1,130 @@
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  outline: none;
+}
+
+.calendar {
+  inline-size: fit-content;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-block-end: var(--space-2);
+}
+
+.heading {
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  font-weight: var(--weight-semibold);
+  text-transform: capitalize;
+}
+
+.navButton,
+.shortcut {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 2.75rem;
+  min-block-size: 2.75rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.navButton[data-hovered],
+.shortcut[data-hovered] {
+  background: var(--color-surface-sunken);
+}
+
+.navButton[data-focus-visible],
+.shortcut[data-focus-visible] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.shortcut {
+  padding-inline: var(--space-3);
+  border-color: var(--color-border-strong);
+  font-size: var(--text-sm);
+}
+
+.grid {
+  border-collapse: collapse;
+}
+
+.grid th {
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
+  padding-block-end: var(--space-1);
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  border-radius: var(--radius-md);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  outline: none;
+}
+
+.cell[data-outside-month] {
+  display: none;
+}
+
+.cell[data-hovered] {
+  background: var(--color-surface-sunken);
+}
+
+.cell[data-selected] {
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+}
+
+.cell[data-selection-start],
+.cell[data-selection-end],
+.calendar:not([data-range]) .cell[data-selected] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.cell[data-focus-visible] {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.cell[data-disabled],
+.cell[data-unavailable] {
+  color: var(--color-text-tertiary);
+  cursor: default;
+}
+
+.rangeInput {
+  display: flex;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (forced-colors: active) {
+  .cell[data-selected] {
+    outline: 2px solid Highlight;
+  }
+}
