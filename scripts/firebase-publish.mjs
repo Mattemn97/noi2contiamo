@@ -232,7 +232,10 @@ async function main() {
     fail("pubblicazione non riuscita.");
 
   console.log(`\nFatto. Il sito è online: ${siteUrl(sites, project)}`);
-  console.log("Gli indici di Firestore possono impiegare qualche minuto a essere pronti.");
+  console.log("Alla prima pubblicazione aspetta qualche minuto: Firestore deve costruire gli indici.");
+  console.log(
+    'Fino ad allora, dopo l\'accesso può comparire "Qualcosa è andato storto": attendi e premi Riprova.',
+  );
   rl.close();
 }
 

@@ -11,9 +11,8 @@ Licenza [MIT](./LICENSE).
 
 ## Stato del progetto
 
-Versione iniziale `0.1.0`. La modalità con server Python è quella provata. Non sono ancora stati provati su un'installazione reale:
+Versione iniziale `0.1.0`. La modalità con server Python e la pubblicazione su Firebase sono state provate su un'installazione reale, ma i test automatici delle regole Firestore (emulatore, serve Java 21) non sono ancora stati eseguiti. Non sono ancora stati provati:
 
-- la modalità Firebase (codice scritto, test dell'emulatore da eseguire con Java 21, deploy mai fatto);
 - l'immagine Docker e `compose.yaml`;
 - l'invio vero di email e Telegram.
 
@@ -85,6 +84,10 @@ npm run firebase:publish
 ```
 
 Lo script fa l'accesso a Google, ti chiede l'ID di un progetto esistente oppure ti guida a crearne uno nuovo, poi prepara app web, database e login, compila e pubblica sito, regole e indici. Se un passaggio automatico non riesce ti dà il link per farlo a mano e aspetta. Con un progetto già pronto: `npm run firebase:publish -- --project <id>`. Rilancialo per pubblicare una versione nuova: i dati restano.
+
+Serve solo un account Google: il piano Spark è gratuito e non chiede dati di pagamento. Il sito finisce su `https://<id-progetto>.web.app`.
+
+> **Dopo la prima pubblicazione aspetta qualche minuto.** Firestore deve costruire gli indici: finché non sono pronti, dopo l'accesso l'app può mostrare "Qualcosa è andato storto". Non è un guasto: attendi e premi _Riprova_. Lo stato si vede in _Firestore Database > Indici_ nella console.
 
 La procedura a mano, se preferisci:
 
