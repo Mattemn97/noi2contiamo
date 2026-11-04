@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   firebaseEnv,
@@ -77,4 +78,12 @@ test("argomenti: progetto, regione predefinita e aiuto", () => {
   });
   assert.equal(parseArgs(["--location", "europe-west8"]).location, "europe-west8");
   assert.equal(parseArgs(["-h"]).help, true);
+});
+
+test("indici Firestore: ogni indice composto ha almeno due campi veri", () => {
+  const { indexes } = JSON.parse(readFileSync("firebase/firestore.indexes.json", "utf8"));
+  const useless = indexes.filter(
+    (index) => index.fields.filter((field) => field.fieldPath !== "__name__").length < 2,
+  );
+  assert.deepEqual(useless, []);
 });

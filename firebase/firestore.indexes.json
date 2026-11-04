@@ -189,20 +189,6 @@
       ]
     },
     {
-      "collectionGroup": "recurrences",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "accountId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "reminders",
       "queryScope": "COLLECTION",
       "fields": [
@@ -212,34 +198,6 @@
         },
         {
           "fieldPath": "kind",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "importBatches",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "accountId",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
-          "order": "ASCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "importProfiles",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "headerSignature",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "__name__",
           "order": "ASCENDING"
         }
       ]
