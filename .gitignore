@@ -27,3 +27,8 @@ firestore-debug.log
 .idea/
 .DS_Store
 Thumbs.db
+.firebase/
+ui-debug.log
+*.db
+*.db-wal
+*.db-shm

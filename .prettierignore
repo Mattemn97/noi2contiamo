@@ -5,12 +5,6 @@ dev-dist/
 package-lock.json
 server/
 data/
-# Prototipo PHP: solo riferimento
-index.html
-script.js
-style.css
-api.php
-noi2contiamo.sql
 db_popolatore.py
 
 # Skill e documenti curati a mano

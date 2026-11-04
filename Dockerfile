@@ -3,7 +3,7 @@
 # 1) Build del frontend in modalità http
 FROM node:24-slim AS web
 WORKDIR /src
-COPY package.json package-lock.json tsconfig.base.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.base.json tsconfig.json tsconfig.tools.json vitest.config.ts ./
 COPY apps/web/package.json apps/web/
 COPY packages/core/package.json packages/core/
 COPY packages/data/package.json packages/data/
@@ -32,6 +32,9 @@ ENV N2C_ENV=production \
     N2C_DATABASE_URL=sqlite:////data/noi2contiamo.db \
     N2C_HOST=0.0.0.0 \
     N2C_PORT=8000
+RUN useradd --system --uid 10001 --home-dir /app n2c && mkdir -p /data && chown n2c /data
+USER n2c
 VOLUME ["/data"]
 EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD python -c "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/api/health', timeout=3)"
 CMD ["python", "-m", "noi2contiamo_server"]

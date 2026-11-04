@@ -151,7 +151,7 @@ I pacchetti interni sono "internal packages": esportano direttamente i sorgenti 
 - `uv` va installato a parte (o si usa Docker).
 
 **Neutral**:
-- Il prototipo PHP resta nel repository come riferimento finché la slice 1 non lo sostituisce.
+- Il prototipo PHP resta nel repository come riferimento finché la slice 1 non lo sostituisce. (Poi rimosso dal repository e dalla storia.)
 - Il passaggio a TypeScript 7 è previsto quando il lint lo supporta.
 - La lingua inglese (feature 22) richiederà una libreria di traduzione; per ora i testi stanno in un catalogo tipizzato `apps/web/src/i18n/it.ts` con una piccola funzione `t()`, così il passaggio sarà meccanico.
 

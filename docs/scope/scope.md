@@ -13,7 +13,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
-| A | Prototipo PHP attuale | Riferimento | existing |
+| A | Prototipo PHP attuale | Riferimento | dropped |
 | 1 | Stack & architettura | Foundation | done |
 | 2 | Coding standards, tooling & test locali | Foundation | done |
 | 3 | Data model | Foundation | done |
@@ -33,15 +33,15 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 17 | Export CSV | Slice 13 | done |
 | 18 | Report PDF settimanali, mensili, annuali | Slice 14 | done |
 | 19 | Promemoria e notifiche gratuite | Slice 15 | done |
-| 20 | Pacchetti di installazione (container, cloud, locale) | Slice 16 | planned |
-| 21 | Pronto per l'open source | Slice 17 | planned |
+| 20 | Pacchetti di installazione (container, cloud, locale) | Slice 16 | done |
+| 21 | Pronto per l'open source | Slice 17 | done |
 | 22 | Interfaccia in inglese | Deferred | planned |
 | 23 | Backup e spostamento dati tra modalità | Deferred | planned |
 
 ## Riferimento
 
-### A. Prototipo PHP attuale · existing
-Primo prototipo: login, registro movimenti, quota 50/50, chi deve a chi, due grafici, import CSV solo finto. Serve come riferimento per funzioni e categorie; verrà sostituito dalla nuova base. Ha problemi noti (password non cifrate nei dati demo, cancellazioni senza controllo di famiglia, HTML iniettabile). code in `./index.html`, `./script.js`, `./api.php`, `./noi2contiamo.sql`
+### A. Prototipo PHP attuale · dropped
+Primo prototipo: login, registro movimenti, quota 50/50, chi deve a chi, due grafici, import CSV solo finto. Sostituito dalla nuova base e poi rimosso dal repository e dalla sua storia (feature 21).
 
 ## Foundations
 
@@ -269,14 +269,15 @@ Scelte: il browser calcola (`packages/core/src/reminders.ts`, id stabili dalla c
 ### 20. Pacchetti di installazione (container, cloud, locale)
 Rendere reali le tre modalità decise nello spec dello stack: container pronto, deploy sul cloud con piano gratuito, avvio locale con un comando.
 **Done when:** seguendo la guida, una persona nuova avvia l'app in ognuna delle tre modalità senza modifiche al codice; i dati demo si caricano con un comando.
-- [ ] Build it: `/develop pacchetti installazione`
+- [x] Build it
+_Nota: Docker e deploy Firebase non verificati (non disponibili nell'ambiente di sviluppo)._
 
 ## Slice 17
 
-### 21. Pronto per l'open source · needs decision
+### 21. Pronto per l'open source
 Licenza, README con guida all'installazione, file di esempio per la configurazione, nessun segreto nel repository, dati demo.
 **Done when:** il repository è pubblicabile senza credenziali dentro; il README porta dall'installazione al primo movimento; la licenza è scelta e presente.
-- [ ] Design it (spec): `/architect open source`
+- [x] Build it (licenza MIT, README, CONTRIBUTING)
 
 ## Deferred
 

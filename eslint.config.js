@@ -38,8 +38,6 @@ export default tseslint.config(
       "firebase/**",
       "data/**",
       "packages/data/src/api.gen.ts",
-      // Prototipo PHP: solo riferimento, non si tocca.
-      "script.js",
     ],
   },
   js.configs.recommended,

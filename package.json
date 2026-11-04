@@ -1,6 +1,17 @@
 {
   "name": "noi2contiamo",
   "private": true,
+  "version": "1.0.0",
+  "description": "Contabilità di coppia e di famiglia, open source e self hosted.",
+  "license": "MIT",
+  "author": "Matteo Filippini",
+  "keywords": [
+    "finanze",
+    "famiglia",
+    "budget",
+    "self-hosted",
+    "pwa"
+  ],
   "type": "module",
   "workspaces": [
     "apps/*",
@@ -14,6 +25,7 @@
     "dev:firebase": "npm run dev:firebase -w @noi2contiamo/web",
     "build": "npm run typecheck && npm run build -w @noi2contiamo/web",
     "build:firebase": "npm run typecheck && npm run build:firebase -w @noi2contiamo/web",
+    "demo": "node scripts/uv.mjs run --project server python -m noi2contiamo_server.demo",
     "local": "npm run build && node scripts/uv.mjs run --project server python -m noi2contiamo_server",
     "typecheck": "tsc -b && tsc -p tsconfig.tools.json",
     "lint": "npm run lint:ts && npm run lint:py",
