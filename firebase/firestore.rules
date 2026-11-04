@@ -1,0 +1,208 @@
+rules_version = '2';
+
+// Regole del data model (spec 0002). Ogni dato vive sotto families/{f}; l'accesso lo dà il
+// documento families/{f}/access/{uid}. Le somme delle quote e l'ultimo proprietario li garantisce
+// packages/core (accettato in spec 0001): qui si controllano appartenenza, visibilità, autore e campi.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function famPath(f) { return /databases/$(database)/documents/families/$(f); }
+    function accessPath(f) { return /databases/$(database)/documents/families/$(f)/access/$(uid()); }
+    function tokenPath(t) { return /databases/$(database)/documents/inviteTokens/$(t); }
+    function isMember(f) { return signedIn() && exists(accessPath(f)); }
+    function acc(f) { return get(accessPath(f)).data; }
+    function isOwner(f) { return isMember(f) && acc(f).role == 'owner'; }
+    function me(f) { return acc(f).memberId; }
+    function data() { return request.resource.data; }
+    function changed() { return data().diff(resource.data).affectedKeys(); }
+    function nowMs() { return request.time.toMillis(); }
+
+    function auditKeys() { return ['id', 'createdAtMs', 'createdByMemberId', 'updatedAtMs', 'updatedByMemberId']; }
+    function onlyKeys(keys) { return data().keys().hasOnly(keys.concat(auditKeys())); }
+    // Autore della scrittura: il membro dell'accesso; chi ha creato il documento non cambia.
+    function stampedBy(memberId, id) {
+      return data().id == id
+        && data().updatedByMemberId == memberId
+        && data().updatedAtMs is int
+        && data().createdAtMs is int
+        && (resource == null
+              ? data().createdByMemberId == memberId
+              : data().createdByMemberId == resource.data.createdByMemberId
+                && data().createdAtMs == resource.data.createdAtMs);
+    }
+    function stamped(f, id) { return stampedBy(me(f), id); }
+    function visibleTo(f, d) { return d.visibility == 'shared' || d.ownerMemberId == me(f); }
+    function cents(v) { return v is int; }
+    function isoDate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+    function optionalId(v) { return v == null || v is string; }
+
+    match /users/{userId} {
+      allow read, write: if signedIn() && uid() == userId;
+    }
+
+    // Token di invito: globale, così chi non è ancora membro può leggerlo. Il token è il segreto.
+    match /inviteTokens/{token} {
+      allow get: if signedIn();
+      allow create: if isOwner(data().familyId)
+        && data().keys().hasOnly(['familyId', 'inviteId', 'expiresAtMs', 'usedByUserId', 'role', 'memberId'])
+        && data().usedByUserId == null && data().expiresAtMs is int
+        && data().role in ['owner', 'member'] && optionalId(data().memberId);
+      allow delete: if isOwner(resource.data.familyId);
+      allow update: if signedIn()
+        && resource.data.usedByUserId == null
+        && resource.data.expiresAtMs > nowMs()
+        && changed().hasOnly(['usedByUserId'])
+        && data().usedByUserId == uid();
+    }
+
+    // "Le mie famiglie": collectionGroup('access').where('userId', '==', uid).
+    match /{path=**}/access/{accessUid} {
+      allow read: if signedIn() && resource.data.userId == uid();
+    }
+
+    match /families/{f} {
+      allow read: if isMember(f);
+      // Creazione atomica: famiglia, membro proprietario e accesso nello stesso batch.
+      allow create: if signedIn()
+        && data().createdByUserId == uid()
+        && data().schemaVersion is int
+        && getAfter(accessPath(f)).data.role == 'owner'
+        && data().createdByMemberId == getAfter(accessPath(f)).data.memberId;
+      allow update: if isOwner(f)
+        && !changed().hasAny(['createdByUserId', 'currency'])
+        && data().updatedByMemberId == me(f);
+
+      function invite(token) { return get(/databases/$(database)/documents/families/$(f)/invites/$(get(tokenPath(token)).data.inviteId)).data; }
+      function joiningWith(token) {
+        return token is string
+          && get(tokenPath(token)).data.familyId == f
+          && get(tokenPath(token)).data.usedByUserId == null
+          && getAfter(tokenPath(token)).data.usedByUserId == uid()
+          && invite(token).usedAtMs == null
+          && invite(token).revokedAtMs == null
+          && invite(token).expiresAtMs > nowMs();
+      }
+      // Chi entra adesso (creatore della famiglia o invitato), visto dal batch in corso.
+      function joiningMemberId() { return getAfter(accessPath(f)).data.memberId; }
+      function joiningNow() { return signedIn() && !exists(accessPath(f)) && existsAfter(accessPath(f)); }
+
+      match /access/{accessUid} {
+        allow read: if isMember(f) || (signedIn() && uid() == accessUid);
+        allow create: if signedIn() && uid() == accessUid
+          && data().keys().hasOnly(['userId', 'memberId', 'role', 'inviteToken'])
+          && data().userId == uid()
+          && getAfter(/databases/$(database)/documents/families/$(f)/members/$(data().memberId)).data.userId == uid()
+          && (
+            (!exists(famPath(f)) && getAfter(famPath(f)).data.createdByUserId == uid()
+              && data().role == 'owner' && data().inviteToken == null)
+            || (joiningWith(data().inviteToken) && data().role == invite(data().inviteToken).role)
+          );
+        // Uscita o rimozione; l'ultimo proprietario lo controlla core.
+        allow delete: if (signedIn() && uid() == accessUid) || isOwner(f);
+        allow update: if isOwner(f) && changed().hasOnly(['role']);
+      }
+
+      match /members/{m} {
+        // Ognuno legge i membri legati al proprio uid (serve per rientrare dopo un'uscita).
+        allow read: if isMember(f) || (signedIn() && resource.data.userId == uid());
+        allow create: if (isOwner(f) && stamped(f, m))
+          || (joiningNow() && joiningMemberId() == m && data().userId == uid() && stampedBy(m, m));
+        allow update: if (isOwner(f) && stamped(f, m))
+          || (isMember(f) && m == me(f) && stamped(f, m) && !changed().hasAny(['role', 'userId']))
+          // Un invitato reclama il membro segnaposto a cui è legato l'invito.
+          || (joiningNow() && joiningMemberId() == m && resource.data.userId == null
+              && data().userId == uid() && stampedBy(m, m)
+              && changed().hasOnly(['userId', 'leftAtMs', 'updatedAtMs', 'updatedByMemberId']))
+          // Chi era uscito rientra con un nuovo invito sullo stesso membro, con il ruolo dell'invito.
+          || (joiningNow() && joiningMemberId() == m && resource.data.userId == uid()
+              && resource.data.leftAtMs != null && data().leftAtMs == null && stampedBy(m, m)
+              && data().role == getAfter(accessPath(f)).data.role
+              && changed().hasOnly(['leftAtMs', 'role', 'joinedAtMs', 'updatedAtMs', 'updatedByMemberId']));
+      }
+
+      match /memberSettings/{m} {
+        allow read, write: if isMember(f) && m == me(f);
+      }
+
+      match /invites/{i} {
+        allow read: if isMember(f);
+        allow create, delete: if isOwner(f);
+        // Il proprietario può solo revocare: uso e scadenza non si riscrivono.
+        allow update: if (isOwner(f) && stamped(f, i)
+              && changed().hasOnly(['revokedAtMs', 'updatedAtMs', 'updatedByMemberId']))
+          // Chi accetta segna l'invito come usato, nello stesso batch del suo accesso.
+          || (joiningNow() && resource.data.usedAtMs == null
+              && data().usedByUserId == uid() && data().usedAtMs is int
+              && changed().hasOnly(['usedAtMs', 'usedByUserId', 'updatedAtMs', 'updatedByMemberId']));
+      }
+
+      match /accounts/{a} {
+        allow read: if isMember(f) && visibleTo(f, resource.data);
+        allow create, update: if isMember(f) && stamped(f, a)
+          && onlyKeys(['name', 'kind', 'ownerMemberId', 'visibility', 'initialBalanceCents',
+                       'initialBalanceDate', 'order', 'archivedAtMs'])
+          && data().visibility in ['shared', 'private']
+          && visibleTo(f, data())
+          && cents(data().initialBalanceCents)
+          && isoDate(data().initialBalanceDate)
+          && (resource == null || visibleTo(f, resource.data));
+        allow delete: if isMember(f) && visibleTo(f, resource.data);
+      }
+
+      match /transactions/{t} {
+        allow read: if isMember(f) && visibleTo(f, resource.data);
+        allow create, update: if isMember(f) && stamped(f, t)
+          && onlyKeys(['type', 'date', 'amountCents', 'isRefund', 'accountId', 'toAccountId', 'categoryId',
+                       'payeeId', 'description', 'notes', 'payerMemberId', 'split', 'settlement', 'visibility',
+                       'ownerMemberId', 'provenance', 'ruleIds', 'importBatchId', 'importFingerprints',
+                       'recurrenceId', 'recurrenceDueDate'])
+          && cents(data().amountCents) && data().amountCents > 0
+          && data().type in ['income', 'expense', 'transfer']
+          && isoDate(data().date)
+          && data().accountId is string
+          && optionalId(data().toAccountId)
+          && (data().type == 'transfer') == (data().toAccountId != null)
+          && (data().visibility == 'shared'
+              || (data().visibility == 'private' && data().ownerMemberId == me(f)
+                  && (data().split == null || data().split.shares.keys().hasOnly([me(f)]))))
+          && (resource == null || visibleTo(f, resource.data));
+        allow delete: if isMember(f) && visibleTo(f, resource.data);
+      }
+
+      function sharedKeys(coll) {
+        return {
+          'categories': ['name', 'kind', 'parentId', 'defaultSplit', 'color', 'icon', 'order', 'archivedAtMs'],
+          'payees': ['name', 'normalizedName', 'archivedAtMs'],
+          'rules': ['name', 'enabled', 'order', 'conditions', 'actions'],
+          'importProfiles': ['name', 'defaultAccountId', 'encoding', 'delimiter', 'quote', 'skipRows', 'hasHeader',
+                             'headerSignature', 'columns', 'dateFormat', 'decimalSeparator', 'thousandsSeparator',
+                             'sign'],
+          'importBatches': ['profileId', 'accountId', 'fileName', 'fileHash', 'rowCount', 'importedCount',
+                            'duplicateCount', 'dateFrom', 'dateTo', 'importedAtMs'],
+          'recurrences': ['name', 'type', 'accountId', 'toAccountId', 'categoryId', 'payeeId', 'expectedAmountCents',
+                          'amountToleranceBp', 'split', 'frequency', 'startDate', 'endDate', 'matchWindowDays',
+                          'descriptionMatch', 'skippedDates', 'archivedAtMs'],
+          'recurrenceDismissals': ['dismissedAtMs', 'dismissedByMemberId']
+        }[coll];
+      }
+
+      match /{coll}/{id} {
+        allow read: if coll in ['categories', 'payees', 'rules', 'importProfiles', 'importBatches', 'recurrences',
+                                'recurrenceDismissals'] && isMember(f);
+        allow create, update: if coll in ['categories', 'payees', 'rules', 'importProfiles', 'importBatches',
+                                          'recurrences', 'recurrenceDismissals']
+          && isMember(f) && stamped(f, id) && onlyKeys(sharedKeys(coll));
+        allow delete: if coll in ['categories', 'payees', 'rules', 'importProfiles', 'importBatches', 'recurrences',
+                                  'recurrenceDismissals'] && isMember(f);
+      }
+
+      match /reminders/{r} {
+        allow read, delete: if isMember(f) && resource.data.memberId == me(f);
+        allow create, update: if isMember(f) && stamped(f, r) && data().memberId == me(f)
+          && (resource == null || resource.data.memberId == me(f));
+      }
+    }
+  }
+}

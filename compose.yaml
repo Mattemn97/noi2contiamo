@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      N2C_SECRET_KEY: ${N2C_SECRET_KEY:?Imposta N2C_SECRET_KEY nel file .env}
+    volumes:
+      - n2c-data:/data
+    restart: unless-stopped
+
+  # Facoltativo: `docker compose --profile postgres up` e
+  # N2C_DATABASE_URL=postgresql+psycopg://n2c:n2c@postgres:5432/n2c nel file .env
+  # (richiede di aggiungere psycopg alle dipendenze del server).
+  postgres:
+    image: postgres:17
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: n2c
+      POSTGRES_PASSWORD: n2c
+      POSTGRES_DB: n2c
+    volumes:
+      - n2c-postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  n2c-data:
+  n2c-postgres:

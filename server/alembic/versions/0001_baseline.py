@@ -1,0 +1,19 @@
+"""Baseline vuota: le tabelle vere arrivano con il data model (feature 3).
+
+Revision ID: 0001
+Revises:
+Create Date: 2026-11-03
+"""
+
+revision = "0001"
+down_revision = None
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    pass
+
+
+def downgrade() -> None:
+    pass
