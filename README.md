@@ -77,6 +77,17 @@ Il file `compose.yaml` include un servizio PostgreSQL facoltativo (`--profile po
 
 ### 3. Firebase (piano Spark, gratuito)
 
+Con Node.js installato, dalla cartella del repository:
+
+```bash
+npm install
+npm run firebase:publish
+```
+
+Lo script fa l'accesso a Google, ti chiede l'ID di un progetto esistente oppure ti guida a crearne uno nuovo, poi prepara app web, database e login, compila e pubblica sito, regole e indici. Se un passaggio automatico non riesce ti dà il link per farlo a mano e aspetta. Con un progetto già pronto: `npm run firebase:publish -- --project <id>`. Rilancialo per pubblicare una versione nuova: i dati restano.
+
+La procedura a mano, se preferisci:
+
 1. Vai su <https://console.firebase.google.com> e crea un progetto (puoi lasciare Google Analytics spento). Resta sul piano **Spark**: non serve la carta e non devi passare a Blaze.
 2. In _Build > Authentication_ premi _Inizia_ e abilita il provider **Email/password**.
 3. In _Build > Firestore Database_ premi _Crea database_, scegli una regione europea e la modalità di produzione (le regole le carichiamo noi).
