@@ -2,8 +2,9 @@
 // Uso: npm run firebase:publish [-- --project <id>] [-- --location eur3]
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import {
   firebaseEnv,
@@ -22,6 +23,25 @@ const CLI = ["--yes", "firebase-tools@15.34"];
 const APP_NAME = "Noi2Contiamo";
 const WINDOWS = process.platform === "win32";
 const CONSOLE = "https://console.firebase.google.com";
+
+/**
+ * Se il file di configurazione di firebase-tools esiste ma è illeggibile (permessi di Windows rovinati),
+ * la CLI si blocca all'avvio: in quel caso usa una cartella tutta sua, fuori dal repository.
+ * Il file originale non viene letto né modificato.
+ */
+function useOwnConfigIfBlocked() {
+  if (process.env.XDG_CONFIG_HOME) return;
+  const stored = join(homedir(), ".config", "configstore", "firebase-tools.json");
+  try {
+    closeSync(openSync(stored, "r"));
+  } catch (error) {
+    if (error.code !== "EPERM" && error.code !== "EACCES") return;
+    const own = join(process.env.LOCALAPPDATA ?? homedir(), "noi2contiamo", "firebase-tools");
+    mkdirSync(own, { recursive: true });
+    process.env.XDG_CONFIG_HOME = own;
+    console.log(`Il file ${stored} non è leggibile: uso ${own}. Ti verrà chiesto di accedere a Google.`);
+  }
+}
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
 
@@ -190,6 +210,7 @@ async function main() {
     return;
   }
 
+  useOwnConfigIfBlocked();
   await ensureLogin();
   const project = await chooseProject(args.project);
   writeFileSync(FIREBASERC, `${JSON.stringify({ projects: { default: project } }, null, 2)}\n`);
