@@ -1,0 +1,9 @@
+{
+  "tool": "vitest",
+  "gate": null,
+  "additionalTools": ["pytest"],
+  "e2eTool": "none",
+  "testDir": "next to the code (*.test.ts); server/tests for Python",
+  "filePattern": "*.test.ts",
+  "packageManager": "npm"
+}

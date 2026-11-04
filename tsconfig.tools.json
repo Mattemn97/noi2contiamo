@@ -1,0 +1,14 @@
+{
+  // Controllo dei tipi per test e file di config (esclusi da `tsc -b`), usato anche da ESLint.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client"],
+    "composite": false,
+    "declaration": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true
+  },
+  "include": ["apps/*/src", "packages/*/src", "*.config.ts", "apps/*/*.config.ts"]
+}

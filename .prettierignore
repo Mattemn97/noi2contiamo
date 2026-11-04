@@ -1,0 +1,23 @@
+node_modules/
+dist/
+dev-dist/
+.tsbuild/
+package-lock.json
+server/
+data/
+# Prototipo PHP: solo riferimento
+index.html
+script.js
+style.css
+api.php
+noi2contiamo.sql
+db_popolatore.py
+
+# Skill e documenti curati a mano
+.claude/
+docs/
+skills-lock.json
+
+# Generati da `npm run gen:api`
+packages/data/openapi.json
+packages/data/src/api.gen.ts

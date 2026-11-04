@@ -1,0 +1,28 @@
+# Node
+node_modules/
+dist/
+.tsbuild/
+*.tsbuildinfo
+dev-dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Dati locali e segreti
+data/
+.env
+.env.*
+!.env.example
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+
+# Editor e sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

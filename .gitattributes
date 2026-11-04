@@ -1,0 +1,4 @@
+# Fine riga LF ovunque, così Prettier e Ruff danno lo stesso risultato su Windows, macOS e Linux.
+* text=auto eol=lf
+*.png binary
+*.db binary
