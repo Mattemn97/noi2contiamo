@@ -33,6 +33,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/dist/**",
       "**/dev-dist/**",
+      "apps/functions/lib/**",
       "**/.tsbuild/**",
       "server/**",
       "firebase/**",

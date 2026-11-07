@@ -1,5 +1,7 @@
 node_modules/
 dist/
+apps/functions/lib/
+bank-csv/
 dev-dist/
 .tsbuild/
 package-lock.json

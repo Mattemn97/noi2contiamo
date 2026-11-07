@@ -42,5 +42,13 @@
     "ui": {
       "enabled": true
     }
-  }
+  },
+  "functions": [
+    {
+      "source": "apps/functions",
+      "codebase": "default",
+      "ignore": ["node_modules", ".git", "firebase-debug.log", "src", "tsconfig.json"],
+      "predeploy": ["npm run build:functions"]
+    }
+  ]
 }
