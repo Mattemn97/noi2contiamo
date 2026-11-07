@@ -14,6 +14,15 @@ Il browser non può parlare direttamente con Enable Banking, quindi serve sempre
 
 ## 1. Registrare l'app su Enable Banking (una volta sola)
 
+**Il modo più semplice:** `npm run bank:setup`. Lo script:
+
+1. controlla che `openssl` ci sia (su Windows lo cerca anche dentro Git for Windows) e crea chiave e certificato in `~/.noi2contiamo/enable-banking/`, fuori dal repository;
+2. ti fa entrare su Enable Banking;
+3. ti chiede di **incollare il comando curl** di registrazione dell'applicazione che trovi nella documentazione di Enable Banking (con l'accesso fatto contiene già il tuo token personale dopo `Bearer`). Lo riscrive con i dati giusti (app di produzione, il tuo certificato, gli indirizzi di ritorno del tuo progetto Firebase, email GDPR, pagine di privacy e termini), chiede nel terminale quelli che mancano, ti mostra il comando finale con il token nascosto e lo esegue dopo la tua conferma. Il token non viene salvato. Se preferisci, ti guida invece a compilare il modulo nel Control Panel;
+4. ti ricorda di attivare l'app collegando i tuoi conti, prova la chiave con una chiamata firmata e stampa i comandi per Spark, Blaze e server Python.
+
+Se preferisci fare tutto a mano:
+
 1. Entra in <https://enablebanking.com/sign-in/> e crea l'account.
 2. Nel **Control Panel** crea una nuova applicazione di tipo **PRODUCTION**.
 3. Genera la chiave privata e il certificato pubblico (servono `openssl`, già presente su macOS e Linux, su Windows con Git Bash):

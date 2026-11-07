@@ -120,7 +120,7 @@ Per provare Firebase in locale senza cloud c'è l'emulatore: `npm run dev:fireba
 
 ## Import dalla banca (open banking)
 
-Oltre al CSV, l'app può leggere i movimenti direttamente dal conto tramite Enable Banking (gratuito per uso personale, circa 2500 banche europee): dal server Python, da una Cloud Function (piano Firebase Blaze, dentro la quota gratuita) oppure, sul piano Spark, con `npm run bank:csv` che scarica un CSV da importare. Tutti i passi sono in [docs/guida-open-banking.md](./docs/guida-open-banking.md).
+Oltre al CSV, l'app può leggere i movimenti direttamente dal conto tramite Enable Banking (gratuito per uso personale, circa 2500 banche europee): dal server Python, da una Cloud Function (piano Firebase Blaze, dentro la quota gratuita) oppure, sul piano Spark, con `npm run bank:csv` che scarica un CSV da importare. Per preparare la chiave e l'app Enable Banking passo passo: `npm run bank:setup`. Tutti i passi sono in [docs/guida-open-banking.md](./docs/guida-open-banking.md).
 
 ## Promemoria e notifiche
 

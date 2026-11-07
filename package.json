@@ -63,7 +63,8 @@
     "prepare": "simple-git-hooks",
     "bank:csv": "node scripts/uv.mjs run --project server python -m noi2contiamo_server.bank_cli",
     "build:functions": "npm run build -w @noi2contiamo/functions",
-    "deploy:firebase:functions": "npm run build:functions && npx --yes firebase-tools@15.34 deploy --only functions"
+    "deploy:firebase:functions": "npm run build:functions && npx --yes firebase-tools@15.34 deploy --only functions",
+    "bank:setup": "node scripts/enable-banking-setup.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -78,12 +79,12 @@
     "globals": "^17.14.0",
     "jsdom": "~30.1.3",
     "lint-staged": "^17.6.0",
+    "openapi-typescript": "~7.13.0",
     "prettier": "~3.9",
     "simple-git-hooks": "^2.14.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
-    "vitest": "^5.1.0",
-    "openapi-typescript": "~7.13.0"
+    "vitest": "^5.1.0"
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"
