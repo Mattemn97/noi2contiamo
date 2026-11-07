@@ -1,7 +1,7 @@
 {
   "name": "noi2contiamo",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Contabilità di coppia e di famiglia, open source e self hosted: spese condivise, import CSV, regole automatiche, dashboard.",
   "license": "MIT",
   "author": "Matteo Filippini",
