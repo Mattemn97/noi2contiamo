@@ -9,6 +9,7 @@ import {
   guessSettings,
   matchProfile,
   newId,
+  ok,
   pickable,
   planImport,
   ruleImportHook,
@@ -21,7 +22,11 @@ import {
   type ImportPlan,
   type ImportProfile,
   type ImportSettings,
+  type ParsedRow,
   type PlanItem,
+  type ReadError,
+  type ReadResult,
+  type Result,
   type SignMode,
   type Transaction,
 } from "@noi2contiamo/core";
@@ -29,7 +34,7 @@ import { chunkOps, type CommitOp, type Cursor } from "@noi2contiamo/data";
 import { getLocalTimeZone, parseDate as parseCalendarDate } from "@internationalized/date";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import { useAdapter } from "../../data/AdapterContext";
 import { keys, unwrap, useCollection, useTransactionsInRange } from "../../data/queries";
 import { useRuleEngine } from "../rules/useRules";
@@ -48,6 +53,7 @@ import {
   formatDate,
   PageHeader,
   Select,
+  SegmentedControl,
   Skeleton,
   StatusBadge,
   TextField,
@@ -59,6 +65,7 @@ import {
 import { cx } from "../../ui/cx";
 import { useFamily } from "../guards";
 import styles from "../layout.module.css";
+import { BankSection, type BankImport } from "./BankSection";
 import local from "./import.module.css";
 import {
   MAX_FILE_BYTES,
@@ -93,6 +100,9 @@ export function ImportPage() {
   const [settings, setSettings] = useState<ImportSettings | null>(null);
   const [profile, setProfile] = useState<ImportProfile | null>(null);
   const [result, setResult] = useState<ImportPlan["counts"] | null>(null);
+  const [bank, setBank] = useState<BankImport | null>(null);
+  const [params, setParams] = useSearchParams();
+  const source = params.get("fonte") === "banca" ? "bank" : "file";
 
   if (accounts.isPending || profiles.isPending || batches.isPending) return <Skeleton lines={6} />;
   if (accounts.isError || profiles.isError || batches.isError)
@@ -108,6 +118,7 @@ export function ImportPage() {
     setSettings(null);
     setProfile(null);
     setResult(null);
+    setBank(null);
   };
   const stepIndex = step === "result" ? 4 : STEP_NAMES.indexOf(step);
 
@@ -133,6 +144,33 @@ export function ImportPage() {
           })}
         </p>
         {step === "file" ? (
+          <SegmentedControl
+            label={t("import.source")}
+            options={[
+              { id: "file", label: t("import.source.file") },
+              { id: "bank", label: t("import.source.bank") },
+            ]}
+            value={source}
+            onChange={(next) => {
+              setParams(next === "bank" ? { fonte: "banca" } : {}, { replace: true });
+            }}
+          />
+        ) : null}
+        {step === "file" && source === "bank" ? (
+          <BankSection
+            accounts={pickable(accounts.data).map((a) => ({ id: a.id, label: a.name }))}
+            batches={batches.data}
+            onRows={(value) => {
+              setBank(value);
+              setAccountId(value.accountId);
+              setFile({ bytes: new Uint8Array(), fileName: value.fileName, hash: value.hash });
+              setSettings(null);
+              setProfile(null);
+              setStep("preview");
+            }}
+          />
+        ) : null}
+        {step === "file" && source === "file" ? (
           <FileStep
             accounts={pickable(accounts.data).map((a) => ({ id: a.id, label: a.name }))}
             accountId={accountId}
@@ -159,15 +197,17 @@ export function ImportPage() {
             }}
           />
         ) : null}
-        {step === "preview" && file && settings && accountId ? (
+        {step === "preview" && file && (settings || bank) && accountId ? (
           <PreviewStep
             file={file}
             settings={settings}
+            bankRows={bank?.rows ?? null}
             profile={profile}
             accountId={accountId}
             batches={batches.data}
             onColumns={() => {
-              setStep("columns");
+              if (bank) reset();
+              else setStep("columns");
             }}
             onDone={(counts) => {
               setResult(counts);
@@ -568,6 +608,7 @@ async function allPages<T>(
 function PreviewStep({
   file,
   settings,
+  bankRows,
   profile,
   accountId,
   batches,
@@ -575,7 +616,9 @@ function PreviewStep({
   onDone,
 }: {
   readonly file: Loaded;
-  readonly settings: ImportSettings;
+  readonly settings: ImportSettings | null;
+  /** Righe già lette dalla banca: niente file, niente colonne, niente profilo. */
+  readonly bankRows: readonly ParsedRow[] | null;
   readonly profile: ImportProfile | null;
   readonly accountId: string;
   readonly batches: readonly ImportBatch[];
@@ -591,15 +634,17 @@ function PreviewStep({
   const rules = useRuleEngine();
   const engine = rules.engine;
   const hook = useMemo(() => (engine ? ruleImportHook(engine.rules, engine.ctx) : null), [engine]);
-  const read = useMemo(
-    () => readRows(decodeBytes(file.bytes, settings.encoding), settings),
-    [file, settings],
-  );
+  const read = useMemo((): Result<ReadResult, ReadError> => {
+    if (bankRows) return ok({ headers: [], rows: [...bankRows] });
+    if (!settings) return ok({ headers: [], rows: [] });
+    return readRows(decodeBytes(file.bytes, settings.encoding), settings);
+  }, [file, settings, bankRows]);
   const range = read.ok ? planWindow(read.value.rows) : null;
   const existing = useTransactionsInRange(family.id, range ?? { from: "0000-01-01", to: "0000-01-01" });
   const [declined, setDeclined] = useState<ReadonlySet<string>>(new Set());
-  const profileChanged = profile !== null && !sameSettings(settingsOf(profile), settings);
-  const [saveProfile, setSaveProfile] = useState(profile === null || profileChanged);
+  const profileChanged =
+    profile !== null && settings !== null && !sameSettings(settingsOf(profile), settings);
+  const [saveProfile, setSaveProfile] = useState(bankRows === null && (profile === null || profileChanged));
   const [name, setName] = useState(profile?.name ?? suggestedName(file.fileName));
   const [confirming, setConfirming] = useState(false);
   const [batchId] = useState(newId);
@@ -643,11 +688,11 @@ function PreviewStep({
   const save = useMutation({
     mutationFn: async () => {
       if (!plan || !account) return null;
-      const keep = saveProfile && name.trim() !== "";
-      const profileId = keep ? (profile?.id ?? newId()) : (profile?.id ?? null);
+      const keepId = saveProfile && name.trim() !== "" && settings !== null ? (profile?.id ?? newId()) : null;
+      const profileId = keepId ?? profile?.id ?? null;
       const doc =
-        keep && profileId
-          ? profileDoc({ id: profileId, name, accountId: account.id, bytes: file.bytes, settings })
+        keepId !== null && settings
+          ? profileDoc({ id: keepId, name, accountId: account.id, bytes: file.bytes, settings })
           : null;
       const final = planImport({
         rows: read.ok ? read.value.rows : [],
@@ -776,9 +821,12 @@ function PreviewStep({
           <PreviewTable items={plan.items} />
         </div>
       </Card>
-      <Card title={profile && !profileChanged ? undefined : t("import.saveProfile")} as="section">
+      <Card
+        title={bankRows || (profile && !profileChanged) ? undefined : t("import.saveProfile")}
+        as="section"
+      >
         <div className={cx(styles.form)}>
-          {profile === null || profileChanged ? (
+          {!bankRows && (profile === null || profileChanged) ? (
             <>
               <Checkbox isSelected={saveProfile} onChange={setSaveProfile}>
                 {profile ? t("import.updateProfile", { name: profile.name }) : t("import.saveProfile")}
