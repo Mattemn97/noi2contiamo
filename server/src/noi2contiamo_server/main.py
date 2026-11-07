@@ -11,6 +11,7 @@ from starlette.responses import Response
 from starlette.types import Scope
 
 from .api import router
+from .bank_api import router as bank_router
 from .db import make_engine, run_migrations
 from .errors import install_error_handlers
 from .notifier import build_senders, run_scheduler
@@ -55,6 +56,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     app.add_middleware(CsrfMiddleware)
     app.include_router(router)
+    app.include_router(bank_router)
 
     @app.get("/api/health")
     def health() -> dict[str, str]:

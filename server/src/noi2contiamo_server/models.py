@@ -399,3 +399,39 @@ class Reminder(FamilyScoped, Base):
     # Solo del server (feature 19): tentativi di invio fatti e canali già serviti ("email,telegram").
     send_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     sent_channels: Mapped[str] = mapped_column(String(64), default="", server_default="")
+
+
+# ---- Open banking (feature 24) -----------------------------------------------------------
+
+
+class BankAuthState(Base):
+    """Richiesta di collegamento in corso: lo `state` casuale torna dalla banca insieme al codice."""
+
+    __tablename__ = "bank_auth_states"
+
+    state: Mapped[str] = mapped_column(String(64), primary_key=True)
+    family_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("families.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
+    aspsp_name: Mapped[str] = mapped_column(String(200))
+    country: Mapped[str] = mapped_column(String(2))
+    created_at_ms: Mapped[int] = mapped_column(BigInteger)
+
+
+class BankConnection(Base):
+    """Banca collegata: la vede solo chi l'ha collegata (i conti bancari sono personali)."""
+
+    __tablename__ = "bank_connections"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True)
+    family_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("families.id", ondelete="CASCADE"), index=True
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"))
+    session_id: Mapped[str] = mapped_column(String(128))
+    bank_name: Mapped[str] = mapped_column(String(200))
+    country: Mapped[str] = mapped_column(String(2))
+    valid_until: Mapped[str] = mapped_column(String(40))
+    accounts: Mapped[list] = mapped_column(JSON)
+    created_at_ms: Mapped[int] = mapped_column(BigInteger)

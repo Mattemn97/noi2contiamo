@@ -32,12 +32,20 @@ class Settings(BaseSettings):
     reminder_max_attempts: int = Field(default=5, ge=1, le=50)
     reminder_max_age_hours: int = Field(default=72, ge=1, le=24 * 30)
 
+    # Open banking (feature 24, Enable Banking): senza queste due variabili risulta non configurato.
+    enable_banking_app_id: str | None = None
+    enable_banking_key_file: str | None = None
+
     @model_validator(mode="after")
     def _channels_complete(self) -> "Settings":
         if self.smtp_host and not self.smtp_from:
             raise ValueError("N2C_SMTP_HOST richiede anche N2C_SMTP_FROM.")
         if bool(self.telegram_bot_token) != bool(self.telegram_chat_id):
             raise ValueError("N2C_TELEGRAM_BOT_TOKEN e N2C_TELEGRAM_CHAT_ID vanno impostati insieme.")
+        if bool(self.enable_banking_app_id) != bool(self.enable_banking_key_file):
+            raise ValueError(
+                "N2C_ENABLE_BANKING_APP_ID e N2C_ENABLE_BANKING_KEY_FILE vanno impostati insieme."
+            )
         return self
 
     def resolved_secret_key(self) -> str:
