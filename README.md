@@ -118,6 +118,10 @@ La procedura a mano, se preferisci:
 
 Per provare Firebase in locale senza cloud c'è l'emulatore: `npm run dev:firebase` con `VITE_USE_FIREBASE_EMULATOR=true` (serve Java per l'emulatore di Firestore).
 
+## Import dalla banca (open banking)
+
+Oltre al CSV, l'app può leggere i movimenti direttamente dal conto tramite Enable Banking (gratuito per uso personale, circa 2500 banche europee): dal server Python, da una Cloud Function (piano Firebase Blaze, dentro la quota gratuita) oppure, sul piano Spark, con `npm run bank:csv` che scarica un CSV da importare. Tutti i passi sono in [docs/guida-open-banking.md](./docs/guida-open-banking.md).
+
 ## Promemoria e notifiche
 
 - **Nell'app e nel browser**: funzionano in tutti i modi, senza configurare nulla. In _Altro > Impostazioni promemoria_ scegli i canali.
