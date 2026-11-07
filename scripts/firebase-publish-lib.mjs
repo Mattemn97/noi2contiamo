@@ -63,3 +63,27 @@ export function parseArgs(argv) {
     help: argv.includes("--help") || argv.includes("-h"),
   };
 }
+
+/** Regione della Cloud Function `bank` (open banking, feature 24): deve coincidere con apps/functions. */
+export const FUNCTIONS_REGION = "europe-west1";
+
+/** La CLI rifiuta di pubblicare le funzioni sul piano Spark: serve il piano Blaze (con fatturazione). */
+export function isBillingPlanError(output) {
+  return /\bblaze\b|pay[- ]as[- ]you[- ]go|billing account|requires billing|upgrade your project|must be on (a|the) .*plan/i.test(
+    output,
+  );
+}
+
+/** Argomenti per tenere le immagini della funzione in Artifact Registry dentro lo spazio gratuito. */
+export function artifactPolicyArgs(project) {
+  return [
+    "functions:artifacts:setpolicy",
+    "--location",
+    FUNCTIONS_REGION,
+    "--days",
+    "1",
+    "--force",
+    "--project",
+    project,
+  ];
+}

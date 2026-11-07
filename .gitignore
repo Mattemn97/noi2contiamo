@@ -22,6 +22,13 @@ server/data/
 firebase-debug.log
 firestore-debug.log
 
+# Open banking: chiavi dell'app Enable Banking e CSV scaricati da `npm run bank:csv`
+*.key
+*.pem
+public.crt
+bank-csv/
+apps/functions/lib/
+
 # Editor e sistema
 .vscode/
 .idea/

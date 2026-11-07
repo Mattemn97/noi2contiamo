@@ -5,3 +5,4 @@ export * from "./numbers";
 export * from "./plan";
 export * from "./profile";
 export * from "./rows";
+export * from "./bank";

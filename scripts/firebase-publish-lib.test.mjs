@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
+  artifactPolicyArgs,
   firebaseEnv,
   hasDefaultDatabase,
+  isBillingPlanError,
   isValidProjectId,
   parseArgs,
   parseCliJson,
@@ -86,4 +88,18 @@ test("indici Firestore: ogni indice composto ha almeno due campi veri", () => {
     (index) => index.fields.filter((field) => field.fieldPath !== "__name__").length < 2,
   );
   assert.deepEqual(useless, []);
+});
+
+test("funzioni: riconosce l'errore del piano Spark e prepara la pulizia delle immagini", () => {
+  assert.equal(
+    isBillingPlanError(
+      "Error: Your project p must be on the Blaze (pay-as-you-go) plan to complete this command.",
+    ),
+    true,
+  );
+  assert.equal(isBillingPlanError("Error: HTTP Error: 403, Cloud Billing API has not been used"), false);
+  assert.equal(isBillingPlanError("Error: Failed to compile TypeScript"), false);
+  const args = artifactPolicyArgs("casa-mia");
+  assert.deepEqual(args.slice(0, 1), ["functions:artifacts:setpolicy"]);
+  assert.ok(args.includes("europe-west1") && args.includes("--force") && args.includes("casa-mia"));
 });

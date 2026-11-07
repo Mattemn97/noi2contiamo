@@ -18,6 +18,9 @@ STATUS = {
     "expired": 410,
     "used": 410,
     "revoked": 410,
+    "not_configured": 409,
+    "consent_expired": 409,
+    "bank_error": 502,
     "invalid": 422,
     "invalid_query": 422,
 }

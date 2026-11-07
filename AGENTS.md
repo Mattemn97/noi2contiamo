@@ -20,6 +20,7 @@ npm run dev:local           # Vite + Uvicorn insieme (proxy /api verso :8000)
 npm run build               # typecheck + build web (VITE_BACKEND=http)
 npm run local               # build + server Python su http://localhost:8000
 npm run demo                # dati demo inventati (solo server Python)
+npm run bank:csv            # scarica i movimenti bancari in CSV (Enable Banking, guida in docs/guida-open-banking.md)
 npm run check               # typecheck + lint + tutti i test, prima di dire "fatto"
 npm run lint:fix            # corregge lint e formato in automatico
 ```

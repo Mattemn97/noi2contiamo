@@ -7,8 +7,10 @@ import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import {
+  artifactPolicyArgs,
   firebaseEnv,
   hasDefaultDatabase,
+  isBillingPlanError,
   isValidProjectId,
   parseArgs,
   parseCliJson,
@@ -192,6 +194,44 @@ function ensureSite(project) {
   return firebaseJson("hosting:sites:list", "--project", project)?.sites ?? [];
 }
 
+/**
+ * Open banking (feature 24): la funzione `bank` richiede il piano Blaze. Sul piano Spark la CLI rifiuta
+ * di pubblicarla: non è un errore, la pubblicazione del sito resta valida e l'import dalla banca si fa con
+ * `npm run bank:csv`.
+ */
+function deployFunctions(project) {
+  step("Funzione per l'import dalla banca (facoltativa, piano Blaze)");
+  const run = spawnSync("npx", [...CLI, "deploy", "--only", "functions", "--project", project], {
+    cwd: ROOT,
+    encoding: "utf8",
+    shell: WINDOWS,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  const output = [run.stdout ?? "", run.stderr ?? ""].join("\n");
+  if (run.status === 0) {
+    console.log("Funzione `bank` pubblicata.");
+    if (!firebase(...artifactPolicyArgs(project))) {
+      console.log("Non ho potuto impostare la pulizia delle immagini: vedi docs/guida-open-banking.md.");
+    }
+    return true;
+  }
+  if (isBillingPlanError(output)) {
+    console.log(
+      [
+        "Il progetto è sul piano gratuito Spark, che non permette le funzioni: il resto è stato pubblicato.",
+        "L'import dalla banca si fa con `npm run bank:csv` (scarica un CSV da importare nell'app).",
+        "Con il piano Blaze (restando nella quota gratuita) attivi la connessione diretta: vedi docs/guida-open-banking.md.",
+      ].join("\n"),
+    );
+  } else {
+    console.log(output.trim().split("\n").slice(-12).join("\n"));
+    console.log(
+      "\nLa funzione per la banca non è stata pubblicata (il sito sì). L'alternativa è `npm run bank:csv`.",
+    );
+  }
+  return false;
+}
+
 function printHelp() {
   console.log(`Pubblica Noi2Contiamo su un tuo progetto Firebase (piano Spark gratuito).
 
@@ -230,6 +270,8 @@ async function main() {
   step("Pubblicazione di sito, regole e indici");
   if (!firebase("deploy", "--only", "hosting,firestore", "--project", project))
     fail("pubblicazione non riuscita.");
+
+  deployFunctions(project);
 
   console.log(`\nFatto. Il sito è online: ${siteUrl(sites, project)}`);
   console.log("Alla prima pubblicazione aspetta qualche minuto: Firestore deve costruire gli indici.");

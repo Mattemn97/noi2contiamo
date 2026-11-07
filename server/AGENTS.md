@@ -11,6 +11,8 @@ Il server Python sottile (modalità self hosted): login, isolamento per famiglia
 | `src/noi2contiamo_server/main.py` | app FastAPI, `GET /api/health`, file statici |
 | `src/noi2contiamo_server/settings.py` | variabili `N2C_*` validate all'avvio |
 | `src/noi2contiamo_server/db.py` | engine SQLAlchemy e migrazioni Alembic al primo avvio |
+| `src/noi2contiamo_server/enable_banking.py` | client Enable Banking (JWT RS256), condiviso da `bank_api.py` e `bank_cli.py` |
+| `src/noi2contiamo_server/bank_api.py` | route `/api/bank/*` (open banking, feature 24) |
 | `alembic/versions/` | migrazioni |
 | `tests/` | pytest con `TestClient` |
 

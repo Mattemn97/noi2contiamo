@@ -9,6 +9,7 @@ import { PayeesPage } from "./features/catalog/PayeesPage";
 import { CreateFamilyPage } from "./features/family/CreateFamilyPage";
 import { FamilyPage } from "./features/family/FamilyPage";
 import { JoinPage } from "./features/family/JoinPage";
+import { BankReturnPage } from "./features/import/BankReturnPage";
 import { ImportPage } from "./features/import/ImportPage";
 import { RequireFamily, RequireSession } from "./features/guards";
 import { ForecastPage } from "./features/recurring/ForecastPage";
@@ -39,6 +40,7 @@ export const routes: RouteObject[] = [
           { path: "/movimenti/:id", element: <EditTransactionPage /> },
           { path: "/saldo", element: <BalancePage /> },
           { path: "/importa", element: <ImportPage /> },
+          { path: "/importa/banca", element: <BankReturnPage /> },
           { path: "/personale", element: <DashboardPage initialView="personal" /> },
           { path: "/altro", element: <MorePage /> },
           { path: "/altro/famiglia", element: <FamilyPage /> },

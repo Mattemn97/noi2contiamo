@@ -1,7 +1,7 @@
 {
   "name": "noi2contiamo",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Contabilità di coppia e di famiglia, open source e self hosted: spese condivise, import CSV, regole automatiche, dashboard.",
   "license": "MIT",
   "author": "Matteo Filippini",
@@ -45,7 +45,7 @@
     "build:firebase": "npm run typecheck && npm run build:firebase -w @noi2contiamo/web",
     "demo": "node scripts/uv.mjs run --project server python -m noi2contiamo_server.demo",
     "local": "npm run build && node scripts/uv.mjs run --project server python -m noi2contiamo_server",
-    "typecheck": "tsc -b && tsc -p tsconfig.tools.json",
+    "typecheck": "tsc -b && tsc -p tsconfig.tools.json && tsc -p apps/functions --noEmit",
     "lint": "npm run lint:ts && npm run lint:py",
     "lint:ts": "eslint . && prettier --check .",
     "lint:py": "node scripts/uv.mjs run --project server ruff check server && node scripts/uv.mjs run --project server ruff format --check server",
@@ -60,7 +60,10 @@
     "gen:api": "node scripts/gen-api.mjs",
     "firebase:publish": "node scripts/firebase-publish.mjs",
     "deploy:firebase": "npm run build:firebase && npx --yes firebase-tools@15.34 deploy --only hosting,firestore",
-    "prepare": "simple-git-hooks"
+    "prepare": "simple-git-hooks",
+    "bank:csv": "node scripts/uv.mjs run --project server python -m noi2contiamo_server.bank_cli",
+    "build:functions": "npm run build -w @noi2contiamo/functions",
+    "deploy:firebase:functions": "npm run build:functions && npx --yes firebase-tools@15.34 deploy --only functions"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

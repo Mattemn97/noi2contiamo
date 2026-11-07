@@ -38,6 +38,12 @@ service cloud.firestore {
     function isoDate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
     function optionalId(v) { return v == null || v is string; }
 
+    // Open banking (feature 24): chiave privata, richieste e collegamenti li legge e scrive solo la
+    // Cloud Function `bank` con l'Admin SDK (che salta le regole). Nessun client, nemmeno il proprietario.
+    match /bankingSecrets/{document=**} {
+      allow read, write: if false;
+    }
+
     match /users/{userId} {
       allow read, write: if signedIn() && uid() == userId;
     }

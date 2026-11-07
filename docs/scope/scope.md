@@ -35,6 +35,7 @@ _Queste sono raccomandazioni per tenere la costruzione ordinata, non obblighi. S
 | 19 | Promemoria e notifiche gratuite | Slice 15 | done |
 | 20 | Pacchetti di installazione (container, cloud, locale) | Slice 16 | done |
 | 21 | Pronto per l'open source | Slice 17 | done |
+| 24 | Import automatico dalla banca (open banking) | Slice 18 | done |
 | 22 | Interfaccia in inglese | Deferred | planned |
 | 23 | Backup e spostamento dati tra modalità | Deferred | planned |
 
@@ -278,6 +279,15 @@ _Nota: Docker e deploy Firebase non verificati (non disponibili nell'ambiente di
 Licenza, README con guida all'installazione, file di esempio per la configurazione, nessun segreto nel repository, dati demo.
 **Done when:** il repository è pubblicabile senza credenziali dentro; il README porta dall'installazione al primo movimento; la licenza è scelta e presente.
 - [x] Build it (licenza MIT, README, CONTRIBUTING)
+
+## Slice 18
+
+### 24. Import automatico dalla banca (open banking) · done
+Leggere i movimenti direttamente dal conto, riusando anteprima, doppioni, giroconti e annullamento dell'import CSV.
+**Done when:** colleghi una banca da _Importa > Dal conto bancario_, scarichi i movimenti di un periodo e li confermi con gli stessi passi del CSV; senza backend l'app spiega come ottenerlo.
+Scelte: provider Enable Banking (gratuito in "restricted mode", GoCardless chiuso alle iscrizioni); non ha CORS, quindi serve un backend che firma il JWT RS256. Tre modi rilevati dall'app (`GET status`, timeout 4 s): server Python (`/api/bank/*`, tabelle `bank_auth_states` e `bank_connections`, variabili `N2C_ENABLE_BANKING_*`), Cloud Function `bank` in `apps/functions` (Blaze, una istanza, chiave in `bankingSecrets/{famiglia}` negata dalle regole), oppure `npm run bank:csv` su Spark. Logica pura in `packages/core/src/import/bank.ts`: righe compatibili con `planImport`, impronte invariate (banca e CSV dello stesso movimento si riconoscono solo se la descrizione coincide, dichiarato nella guida), lotto con hash di connessione, conto e periodo. Eccezione al vincolo "niente Blaze": solo la connessione diretta lo richiede ed è facoltativa; resta sempre lo script. Guida: `docs/guida-open-banking.md`. Nessuna spec dedicata.
+_Nota: nessuna chiamata reale a Enable Banking né deploy Firebase verificati (servizi finti nei test)._
+- [x] Build it
 
 ## Deferred
 

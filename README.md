@@ -11,7 +11,7 @@ Licenza [MIT](./LICENSE).
 
 ## Stato del progetto
 
-Versione `1.0.0`. La modalità con server Python e la pubblicazione su Firebase sono state provate su un'installazione reale, ma i test automatici delle regole Firestore (emulatore, serve Java 21) non sono ancora stati eseguiti. Non sono ancora stati provati:
+Versione `1.1.0`. La modalità con server Python e la pubblicazione su Firebase sono state provate su un'installazione reale, ma i test automatici delle regole Firestore (emulatore, serve Java 21) non sono ancora stati eseguiti. Non sono ancora stati provati:
 
 - l'immagine Docker e `compose.yaml`;
 - l'invio vero di email e Telegram.
@@ -117,6 +117,10 @@ La procedura a mano, se preferisci:
 - Non c'è un passaggio automatico dei dati tra Firebase e server Python.
 
 Per provare Firebase in locale senza cloud c'è l'emulatore: `npm run dev:firebase` con `VITE_USE_FIREBASE_EMULATOR=true` (serve Java per l'emulatore di Firestore).
+
+## Import dalla banca (open banking)
+
+Oltre al CSV, l'app può leggere i movimenti direttamente dal conto tramite Enable Banking (gratuito per uso personale, circa 2500 banche europee): dal server Python, da una Cloud Function (piano Firebase Blaze, dentro la quota gratuita) oppure, sul piano Spark, con `npm run bank:csv` che scarica un CSV da importare. Tutti i passi sono in [docs/guida-open-banking.md](./docs/guida-open-banking.md).
 
 ## Promemoria e notifiche
 

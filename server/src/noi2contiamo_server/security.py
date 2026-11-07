@@ -138,7 +138,7 @@ def ensure_csrf_cookie(request: Request, response: Response) -> str:
 
 class CsrfMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        if request.method not in SAFE_METHODS and request.url.path.startswith("/api/v1/"):
+        if request.method not in SAFE_METHODS and request.url.path.startswith(("/api/v1/", "/api/bank/")):
             cookie = request.cookies.get(CSRF_COOKIE, "")
             header = request.headers.get(CSRF_HEADER, "")
             if not cookie or not secrets.compare_digest(cookie.encode(), header.encode()):
