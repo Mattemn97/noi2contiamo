@@ -1,7 +1,16 @@
 // Categorie (feature 7): entrate e uscite, un livello di sottocategorie, colore, divisione predefinita salvata.
-import { categorySplit, newId, type BasisPoints, type Category, type Member } from "@noi2contiamo/core";
+import {
+  categorySplit,
+  missingDefaultCategories,
+  newId,
+  type BasisPoints,
+  type Category,
+  type Member,
+} from "@noi2contiamo/core";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type SyntheticEvent } from "react";
-import { useCollection } from "../../data/queries";
+import { useAdapter } from "../../data/AdapterContext";
+import { keys, unwrap, useCollection } from "../../data/queries";
 import { t } from "../../i18n/it";
 import {
   Button,
@@ -16,6 +25,7 @@ import {
   Skeleton,
   Tabs,
   TextField,
+  useToast,
 } from "../../ui";
 import { SERIES_SLOTS } from "../../ui/charts/seriesColor";
 import { cx } from "../../ui/cx";
@@ -250,6 +260,51 @@ function CategoryList({
   );
 }
 
+/** Aggiunge le categorie suggerite che la famiglia non ha ancora; sparisce quando ci sono tutte. */
+function SuggestedCategoriesButton({
+  familyId,
+  categories,
+}: {
+  readonly familyId: string;
+  readonly categories: readonly Category[];
+}) {
+  const adapter = useAdapter();
+  const client = useQueryClient();
+  const toast = useToast();
+  const missing = missingDefaultCategories(categories);
+  const add = useMutation({
+    mutationFn: async () => {
+      unwrap(
+        await adapter.commit(
+          familyId,
+          missing.map((doc) => ({ type: "put", collection: "categories", doc }) as const),
+        ),
+      );
+      return missing.length;
+    },
+    onSuccess: async (count) => {
+      await client.invalidateQueries({ queryKey: keys.collection(familyId, "categories") });
+      toast.show({ message: t("categories.suggested.done", { n: String(count) }) });
+    },
+    onError: () => {
+      toast.show({ message: t("categories.suggested.error") });
+    },
+  });
+  if (missing.length === 0) return null;
+  return (
+    <Button
+      size="sm"
+      variant="secondary"
+      isPending={add.isPending}
+      onPress={() => {
+        add.mutate();
+      }}
+    >
+      {t("categories.suggested.add", { n: String(missing.length) })}
+    </Button>
+  );
+}
+
 export function CategoriesPage() {
   const { family } = useFamily();
   const categories = useCollection(family.id, "categories");
@@ -278,14 +333,17 @@ export function CategoriesPage() {
       <PageHeader title={t("categories.title")} subtitle={t("categories.subtitle")} />
       <Card
         actions={
-          <Button
-            size="sm"
-            onPress={() => {
-              setEditing("new");
-            }}
-          >
-            {t("categories.add")}
-          </Button>
+          <>
+            <SuggestedCategoriesButton familyId={family.id} categories={categories.data} />
+            <Button
+              size="sm"
+              onPress={() => {
+                setEditing("new");
+              }}
+            >
+              {t("categories.add")}
+            </Button>
+          </>
         }
       >
         <div className={cx(styles.stack)}>

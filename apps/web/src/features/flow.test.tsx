@@ -97,7 +97,7 @@ describe("filo base", () => {
     const accounts = await adapter.list(familyId, "accounts");
     const categories = await adapter.list(familyId, "categories");
     expect(accounts.ok && accounts.value.docs.map((a) => a.name)).toEqual(["Conto comune"]);
-    expect(categories.ok && categories.value.docs).toHaveLength(9);
+    expect(categories.ok && categories.value.docs).toHaveLength(defaultCategories().length);
 
     // Salvare senza importo né categoria mostra cosa manca, senza scrivere niente.
     await user.click(screen.getByRole("button", { name: "Salva movimento" }));

@@ -112,6 +112,33 @@ describe("pagina categorie e destinatari", () => {
     expect(results.violations.map((v) => v.id)).toEqual([]);
   });
 
+  it("una famiglia con le vecchie categorie aggiunge solo le suggerite che mancano", async () => {
+    const user = userEvent.setup();
+    const adapter = createMemoryAdapter();
+    await adapter.auth.signUp("anna@example.com", "password-di-prova");
+    const familyId = newId();
+    await adapter.membership.createFamily({
+      family: { id: familyId, name: "Casa Rossi" },
+      ownerMember: { id: newId(), displayName: "Anna" },
+      defaults: {
+        categories: [
+          { id: newId(), name: "Stipendio", kind: "income", order: 0 },
+          { id: newId(), name: "Spesa Alimentare", kind: "expense", order: 0 },
+          { id: newId(), name: "Palestra", kind: "expense", order: 1 },
+        ],
+      },
+    });
+    renderApp(adapter, "/altro/categorie");
+    await user.click(await screen.findByRole("button", { name: "Aggiungi categorie suggerite (20)" }));
+    expect(await screen.findByText("Viaggi / Vacanze")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Aggiungi categorie suggerite/ })).toBeNull();
+    const listed = await adapter.list(familyId, "categories");
+    const names = listed.ok ? listed.value.docs.map((c) => c.name) : [];
+    expect(names).toHaveLength(23);
+    expect(names.filter((n) => n === "Spesa Alimentare")).toHaveLength(1);
+    expect(names).toContain("Palestra");
+  });
+
   it("un destinatario si crea dalla sua pagina", async () => {
     const user = userEvent.setup();
     const { adapter, familyId } = await seeded();
