@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAdapter } from "../../data/AdapterContext";
+import { isDebugEnabled, logInfo, setDebugEnabled } from "../../debug/log";
 import { useResetAfterAuth, useSession } from "../../data/queries";
 import { t } from "../../i18n/it";
 import {
@@ -12,6 +13,7 @@ import {
   EmptyState,
   PageHeader,
   StatusBadge,
+  Switch,
   ThemeSwitcher,
   type Status,
 } from "../../ui";
@@ -50,6 +52,28 @@ function ServerStatus() {
       <p aria-live="polite">
         <StatusBadge status={HEALTH_STATUS[health]} label={t(`status.${health}`)} />
       </p>
+    </Card>
+  );
+}
+
+function DebugSettings() {
+  const [enabled, setEnabled] = useState(isDebugEnabled);
+  return (
+    <Card title={t("debug.title")} as="section">
+      <div className={cx(styles.stack)}>
+        <p className={cx(styles.muted)}>{t("debug.help")}</p>
+        <Switch
+          isSelected={enabled}
+          onChange={(next) => {
+            setDebugEnabled(next);
+            setEnabled(next);
+            if (next) logInfo("debug.on", { version: import.meta.env.VITE_APP_VERSION ?? "dev" });
+          }}
+        >
+          {t("debug.toggle")}
+        </Switch>
+        <p className={cx(styles.muted)}>{t("debug.hint")}</p>
+      </div>
     </Card>
   );
 }
@@ -175,6 +199,7 @@ export function MorePage() {
           </div>
         </Card>
         <ServerStatus />
+        <DebugSettings />
       </div>
     </>
   );

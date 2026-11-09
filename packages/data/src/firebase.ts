@@ -55,13 +55,12 @@ import {
   type DocumentData,
   type Firestore,
   type QueryConstraint,
-  type WriteBatch,
 } from "firebase/firestore";
 import {
   AuthError,
+  chunkOps,
   MAX_COMMIT_OPS,
   MAX_LIST_LIMIT,
-  type CommitOp,
   type Cursor,
   type DataAdapter,
   type DataError,
@@ -95,6 +94,13 @@ interface Access {
 }
 
 const notFound = err<DataError>({ code: "not_found" });
+
+/**
+ * Scritture per batch Firestore. Le regole contano le letture `get()`/`exists()` (massimo 20) e le
+ * espressioni valutate (massimo 1000) sull'intero batch, non per documento: oltre, la richiesta è
+ * rifiutata con `permission-denied`. Un import di qualche centinaio di righe in un solo batch fallisce.
+ */
+export const RULES_BATCH_OPS = 8;
 
 const userOf = (u: FirebaseUser): User => ({ id: u.uid, email: u.email ?? "" });
 
@@ -157,10 +163,19 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
   }
 
   /** Prepara il documento da scrivere: audit, default e invarianti di `core` (le regole non li calcolano). */
-  async function prepare(familyId: string, c: CollectionName, input: object, me: Access): Promise<R<AnyDoc>> {
+  async function prepare(
+    familyId: string,
+    c: CollectionName,
+    input: object,
+    me: Access,
+    pending?: ReadonlyMap<string, AnyDoc>,
+  ): Promise<R<AnyDoc>> {
+    // In un commit i riferimenti possono puntare a documenti scritti prima nello stesso commit.
+    const lookup = async (col: CollectionName, id: string) =>
+      pending?.get(`${col}/${id}`) ?? (await readDoc(familyId, col, id));
     const raw = input as Partial<AnyDoc>;
     if (typeof raw.id !== "string") return err({ code: "invalid", issues: [{ path: "id", message: "manca l'id" }] });
-    const prev = await readDoc(familyId, c, raw.id);
+    const prev = await lookup(c, raw.id);
     const t = Date.now();
     const parsed = parseDoc(c, {
       ...input,
@@ -174,31 +189,31 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
     if (c === "transactions") {
       const tx = next as unknown as Transaction;
       const account = async (id: string | null) =>
-        id ? ((await readDoc(familyId, "accounts", id)) as Account | null) : null;
-      const category = tx.categoryId ? ((await readDoc(familyId, "categories", tx.categoryId)) as Category | null) : null;
+        id ? ((await lookup("accounts", id)) as Account | null) : null;
+      const category = tx.categoryId ? ((await lookup("categories", tx.categoryId)) as Category | null) : null;
       const members = await getDocs(coll(db, "families", familyId, "members"));
       const checked = checkTransaction(tx, {
         account: await account(tx.accountId),
         toAccount: await account(tx.toAccountId),
         category,
         memberIds: new Set(members.docs.map((d) => d.id)),
-        payee: tx.payeeId ? ((await readDoc(familyId, "payees", tx.payeeId)) as Payee | null) : null,
+        payee: tx.payeeId ? ((await lookup("payees", tx.payeeId)) as Payee | null) : null,
       });
       if (!checked.ok) return err({ code: "invalid", issues: checked.error.map((message) => ({ path: "", message })) });
-      if (tx.recurrenceId !== null && (await readDoc(familyId, "recurrences", tx.recurrenceId)) === null)
+      if (tx.recurrenceId !== null && (await lookup("recurrences", tx.recurrenceId)) === null)
         return err({ code: "invalid", issues: [{ path: "recurrenceId", message: "documento inesistente" }] });
       if (await fingerprintTaken(familyId, tx, me)) return err({ code: "conflict", reason: "duplicate_fingerprint" });
     }
     if (c === "recurrences") {
       const rec = next as unknown as Recurrence;
       const account = async (id: string | null) =>
-        id ? ((await readDoc(familyId, "accounts", id)) as Account | null) : null;
+        id ? ((await lookup("accounts", id)) as Account | null) : null;
       const members = await getDocs(coll(db, "families", familyId, "members"));
       const issues = recurrenceRefIssues(rec, {
         account: await account(rec.accountId),
         toAccount: await account(rec.toAccountId),
-        category: rec.categoryId ? ((await readDoc(familyId, "categories", rec.categoryId)) as Category | null) : null,
-        payee: rec.payeeId ? ((await readDoc(familyId, "payees", rec.payeeId)) as Payee | null) : null,
+        category: rec.categoryId ? ((await lookup("categories", rec.categoryId)) as Category | null) : null,
+        payee: rec.payeeId ? ((await lookup("payees", rec.payeeId)) as Payee | null) : null,
         memberIds: new Set(members.docs.map((d) => d.id)),
       });
       if (issues.length > 0) return err({ code: "invalid", issues: issues.map((message) => ({ path: "", message })) });
@@ -562,17 +577,6 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
     return parsed.value;
   };
 
-  async function stage(familyId: string, batch: WriteBatch, op: CommitOp, me: Access): Promise<R<void>> {
-    if (op.type === "remove") {
-      batch.delete(docRef(familyId, op.collection, op.id));
-      return ok(undefined);
-    }
-    const prepared = await prepare(familyId, op.collection, op.doc, me);
-    if (!prepared.ok) return prepared;
-    batch.set(docRef(familyId, op.collection, prepared.value.id), withoutUndefined(prepared.value));
-    return ok(undefined);
-  }
-
   return {
     kind: "firebase",
     auth: {
@@ -733,13 +737,30 @@ export function createFirebaseAdapter(options: FirebaseAdapterOptions): DataAdap
       if (!access.ok) return access;
       if (ops.length > MAX_COMMIT_OPS)
         return err({ code: "invalid", issues: [{ path: "ops", message: "massimo 500 operazioni" }] });
-      const batch = writeBatch(db);
+      // Prima si valida tutto (nessuna scrittura se un documento non va), poi si scrive a blocchi.
+      const pending = new Map<string, AnyDoc>();
+      const writes: (
+        | { readonly kind: "set"; readonly collection: CollectionName; readonly doc: AnyDoc }
+        | { readonly kind: "delete"; readonly collection: CollectionName; readonly id: string }
+      )[] = [];
       for (const op of ops) {
-        const staged = await stage(familyId, batch, op, access.value);
-        if (!staged.ok) return staged;
+        if (op.type === "remove") {
+          writes.push({ kind: "delete", collection: op.collection, id: op.id });
+          continue;
+        }
+        const prepared = await prepare(familyId, op.collection, op.doc, access.value, pending);
+        if (!prepared.ok) return prepared;
+        pending.set(`${op.collection}/${prepared.value.id}`, prepared.value);
+        writes.push({ kind: "set", collection: op.collection, doc: prepared.value });
       }
       try {
-        await batch.commit();
+        for (const chunk of chunkOps(writes, RULES_BATCH_OPS)) {
+          const batch = writeBatch(db);
+          for (const w of chunk)
+            if (w.kind === "delete") batch.delete(docRef(familyId, w.collection, w.id));
+            else batch.set(docRef(familyId, w.collection, w.doc.id), withoutUndefined(w.doc));
+          await batch.commit();
+        }
         return ok(undefined);
       } catch (error) {
         return failure(error);

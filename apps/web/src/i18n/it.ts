@@ -547,7 +547,14 @@ export const it = {
   "import.confirm.title": "Confermi l'import?",
   "import.confirm.body": "Salvo {count} movimenti su {account}. Potrai annullare l'import dallo storico.",
   "import.confirm.save": "Importa",
-  "import.error.save": "Import non riuscito. Non è stato salvato niente di nuovo: riprova.",
+  "import.error.save":
+    "Import non riuscito. Se una parte è stata salvata la trovi nello storico qui sotto: puoi annullarla, oppure reimportare il file (le righe già salvate si saltano).",
+  "debug.errorCode": "(codice: {code})",
+  "debug.title": "Diagnostica",
+  "debug.help":
+    "Scrive nella console del browser (F12 > Console) ogni azione dell'app: pagine, letture e salvataggi, import, errori. Mostra solo codici, conteggi e tempi: importi, descrizioni, nomi, email e chiavi restano nascosti. Gli errori si registrano sempre.",
+  "debug.toggle": "Registro dettagliato nella console",
+  "debug.hint": "Puoi accenderlo anche aggiungendo ?debug=1 all'indirizzo (e spegnerlo con ?debug=0).",
   "import.done": "Import completato",
   "import.result": "Salvati {imported} movimenti, {duplicate} doppioni saltati, {error} righe con errori.",
   "import.toRegister": "Vai ai movimenti",

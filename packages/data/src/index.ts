@@ -154,7 +154,11 @@ export interface DataAdapter {
     doc: WriteDocOf<C>,
   ): Promise<Result<DocOf<C>, DataError>>;
   remove(familyId: FamilyId, collection: CollectionName, id: DocId): Promise<Result<void, DataError>>;
-  /** Atomico: o tutte le operazioni o nessuna (max 500, vedi `chunkOps`). */
+  /**
+   * Valida tutte le operazioni prima di scrivere: un documento non valido non scrive niente (max 500, vedi
+   * `chunkOps`). Memory e http scrivono tutto insieme; Firebase scrive a blocchi di `RULES_BATCH_OPS` per i
+   * limiti delle regole, quindi un guasto di rete a metà può lasciare scritta solo una parte.
+   */
   commit(familyId: FamilyId, ops: readonly CommitOp[]): Promise<Result<void, DataError>>;
 }
 

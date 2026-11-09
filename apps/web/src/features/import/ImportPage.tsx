@@ -36,6 +36,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useId, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useAdapter } from "../../data/AdapterContext";
+import { errorCode } from "../../debug/errorCode";
+import { logInfo, logWarn } from "../../debug/log";
 import { keys, unwrap, useCollection, useTransactionsInRange } from "../../data/queries";
 import { useRuleEngine } from "../rules/useRules";
 import { t } from "../../i18n/it";
@@ -712,7 +714,21 @@ function PreviewStep({
         ...(hook ? { hook } : {}),
         ...(doc ? { profile: doc } : {}),
       });
-      for (const chunk of chunkOps<CommitOp>(final.ops)) unwrap(await adapter.commit(family.id, chunk));
+      const chunks = chunkOps<CommitOp>(final.ops);
+      logInfo("import.save", {
+        step: bankRows ? "bank" : "csv",
+        counts: final.counts,
+        ops: final.ops.length,
+        chunks: chunks.length,
+        batchId,
+      });
+      for (const [index, chunk] of chunks.entries()) {
+        const result = await adapter.commit(family.id, chunk);
+        if (!result.ok)
+          logWarn("import.save.chunk", { chunk: index + 1, chunks: chunks.length, error: result.error });
+        unwrap(result);
+      }
+      logInfo("import.save.done", { batchId, counts: final.counts });
       return final.counts;
     },
     onSuccess: async (counts) => {
@@ -844,7 +860,7 @@ function PreviewStep({
           {importable === 0 ? <p className={cx(styles.muted)}>{t("import.nothing")}</p> : null}
           {save.isError ? (
             <p role="alert" className={cx(styles.error)}>
-              {t("import.error.save")}
+              {t("import.error.save")} {t("debug.errorCode", { code: errorCode(save.error) })}
             </p>
           ) : null}
           <div className={cx(styles.actions)}>

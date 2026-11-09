@@ -985,6 +985,43 @@ export function runContractSuite(name: string, makeAdapter: () => DataAdapter, o
         expect(unwrap(await adapter.list(familyId, "transactions", { where: { importBatchId: batchId } })).docs).toEqual([]);
         expect((await plan()).counts).toMatchObject({ new: 4, duplicate: 0 });
       });
+
+      it("importa un file grande con destinatari nuovi nello stesso commit", async () => {
+        // Come un estratto Revolut di un anno: centinaia di righe, oltre i limiti di un solo batch
+        // Firestore con le regole, e movimenti che puntano a destinatari creati nello stesso commit.
+        const { adapter, familyId, shared } = await setup(makeAdapter());
+        const lines = Array.from({ length: 200 }, (_, i) => {
+          const day = String((i % 28) + 1).padStart(2, "0");
+          return `${day}/10/2026;Spesa ${i};Negozio ${i % 40};-${(i % 90) + 1},${String(i % 100).padStart(2, "0")}`;
+        });
+        const big = new TextEncoder().encode(["Data;Descrizione;Beneficiario;Importo", ...lines].join("\n"));
+        const settings = guessSettings(big);
+        const read = readRows(decodeBytes(big, settings.encoding), settings);
+        if (!read.ok) throw new Error(JSON.stringify(read.error));
+        const plan = planImport({
+          rows: read.value.rows,
+          account: unwrap(await adapter.get(familyId, "accounts", shared.id)),
+          accounts: unwrap(await adapter.list(familyId, "accounts")).docs,
+          family: unwrap(await adapter.membership.myFamilies()).find((f) => f.family.id === familyId)!.family,
+          categories: unwrap(await adapter.list(familyId, "categories")).docs,
+          payees: [],
+          existing: [],
+          batchId: newId(),
+          profileId: null,
+          fileName: "grande.csv",
+          fileHash: fileHash(big),
+          nowMs: Date.now(),
+          newId,
+        });
+        expect(plan.counts).toMatchObject({ new: 200, error: 0 });
+        expect(plan.ops.filter((op) => op.type === "put" && op.collection === "payees")).toHaveLength(40);
+        for (const chunk of chunkOps(plan.ops)) unwrap(await adapter.commit(familyId, chunk));
+        const imported = unwrap(
+          await adapter.list(familyId, "transactions", { where: { importBatchId: plan.batch!.id }, limit: 500 }),
+        ).docs;
+        expect(imported).toHaveLength(200);
+        expect(imported.every((t) => t.payeeId !== null)).toBe(true);
+      });
     });
 
     group("rules", "regole automatiche (feature 12, spec 0007)", () => {

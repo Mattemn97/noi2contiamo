@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
@@ -13,6 +14,14 @@ export default defineConfig(({ mode }) => {
   return {
     define: {
       "import.meta.env.VITE_BACKEND": JSON.stringify(backend),
+      // Versione del repository, per riconoscere nel registro di diagnostica quale build gira.
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(
+        (
+          JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
+            version: string;
+          }
+        ).version,
+      ),
     },
     plugins: [
       react(),

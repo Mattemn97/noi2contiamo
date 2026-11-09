@@ -23,5 +23,6 @@ Il confine tra dominio e dati: l'interfaccia `DataAdapter` e le sue tre implemen
 ## Gotchas
 
 - `commit` oltre 500 operazioni va spezzato con `chunkOps` (limite batch Firestore).
+- Firebase scrive ogni `commit` a blocchi di `RULES_BATCH_OPS` (8): le regole contano `get()`/`exists()` (max 20) ed espressioni (max 1000) sull'intero batch, e oltre rispondono `permission-denied`. `prepare` vede i documenti messi prima nello stesso commit (es. destinatari nuovi di un import).
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

@@ -2,6 +2,7 @@
 // parla con un backend che firma e inoltra, scelto dalla build: `/api/bank/` sul server Python, la Cloud
 // Function `bank` su Firebase. La logica pura (righe, lotti) sta in `packages/core`; qui solo rete.
 import { BankTransaction } from "@noi2contiamo/core";
+import { logInfo, logWarn } from "../../debug/log";
 
 export interface BankStatus {
   readonly configured: boolean;
@@ -108,19 +109,28 @@ export function createBankApi(options: BankApiOptions): BankApi {
     query: Record<string, string> = {},
     body?: unknown,
   ): Promise<unknown> {
+    // Nel registro solo metodo, percorso ed esito: parametri e corpo possono contenere codici di accesso.
+    const start = performance.now();
+    const ms = () => Math.round(performance.now() - start);
     let response: Response;
     try {
       response = await call(method, path, query, body);
     } catch {
+      logWarn("bank.call", { method, path, status: 0, duration: ms() });
       throw new BankApiError("bank_error", "Rete non raggiungibile", 0);
     }
-    if (response.status === 204) return null;
+    if (response.status === 204) {
+      logInfo("bank.call", { method, path, status: 204, duration: ms() });
+      return null;
+    }
     const data: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const code = isObject(data) && typeof data.code === "string" ? data.code : "generic";
       const message = isObject(data) && typeof data.message === "string" ? data.message : "";
+      logWarn("bank.call", { method, path, status: response.status, code, message, duration: ms() });
       throw new BankApiError(code, message, response.status);
     }
+    logInfo("bank.call", { method, path, status: response.status, duration: ms() });
     return data;
   }
 
