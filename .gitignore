@@ -43,3 +43,7 @@ ui-debug.log
 # Skill e impostazioni locali degli assistenti AI
 .claude/
 skills-lock.json
+
+# Sito del progetto (npm run build:site)
+apps/web/dist-demo/
+_site/

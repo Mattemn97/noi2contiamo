@@ -32,6 +32,8 @@ export default tseslint.config(
     ignores: [
       "**/node_modules/**",
       "**/dist/**",
+      "**/dist-demo/**",
+      "_site/**",
       "**/dev-dist/**",
       "apps/functions/lib/**",
       "**/.tsbuild/**",
@@ -59,7 +61,7 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ["apps/web/src/**/*.{ts,tsx}"],
+    files: ["apps/web/src/**/*.{ts,tsx}", "site/**/*.js"],
     languageOptions: { globals: globals.browser },
   },
   {

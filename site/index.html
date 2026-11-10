@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Noi2Contiamo · la contabilità di coppia e di famiglia</title>
+    <meta
+      name="description"
+      content="Web app open source e self hosted per tenere i conti di coppia e di famiglia: spese divise, chi deve quanto a chi, import CSV dalla banca, regole automatiche, previsioni. Provala subito nel browser."
+    />
+    <meta property="og:title" content="Noi2Contiamo · la contabilità di coppia e di famiglia" />
+    <meta
+      property="og:description"
+      content="Spese divise, saldo tra i membri, import dalla banca e previsioni. Open source, a casa tua, senza abbonamenti."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="img/panoramica.jpg" />
+    <meta name="theme-color" content="#1f6f5c" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="stile.css" />
+  </head>
+  <body>
+    <a class="salta" href="#contenuto">Vai al contenuto</a>
+    <header class="testata">
+      <div class="larghezza testata-riga">
+        <a class="marchio" href="#">
+          <img src="icon.svg" alt="" width="32" height="32" />
+          <span>Noi2Contiamo</span>
+        </a>
+        <nav aria-label="Sezioni">
+          <a href="#funzioni">Funzioni</a>
+          <a href="#demo">Demo</a>
+          <a href="#installa">Installa</a>
+          <a href="#domande">Domande</a>
+          <a class="nav-github" href="https://github.com/Mattemn97/noi2contiamo">GitHub</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="contenuto">
+      <section class="eroe">
+        <div class="larghezza eroe-griglia">
+          <div>
+            <p class="occhiello">Open source · self hosted · senza abbonamenti</p>
+            <h1>I conti di casa, finalmente in due.</h1>
+            <p class="sottotitolo">
+              Noi2Contiamo tiene la contabilità di coppia e di famiglia: ognuno registra o importa i propri
+              movimenti, le spese si dividono da sole e in ogni momento sai chi deve quanto a chi. Gira sul
+              tuo computer, in Docker o sul piano gratuito di Firebase, e i dati restano tuoi.
+            </p>
+            <div class="azioni">
+              <a class="bottone primario" href="#demo">Prova la demo</a>
+              <a class="bottone" href="#installa">Installala a casa</a>
+            </div>
+            <p class="nota">
+              La demo gira nel browser con dati inventati: niente account, niente installazione.
+            </p>
+          </div>
+          <figure class="cornice eroe-immagine">
+            <picture>
+              <source srcset="img/panoramica-scura.jpg" media="(prefers-color-scheme: dark)" />
+              <img
+                src="img/panoramica.jpg"
+                width="1280"
+                height="800"
+                alt="La panoramica di Noi2Contiamo: entrate, uscite, risparmio del mese e grafici per categoria"
+              />
+            </picture>
+          </figure>
+        </div>
+      </section>
+
+      <section class="striscia" aria-label="In breve">
+        <ul class="larghezza">
+          <li><strong>MIT</strong> licenza aperta</li>
+          <li><strong>3</strong> modi di installarla</li>
+          <li><strong>0 €</strong> di abbonamento</li>
+          <li><strong>PWA</strong> da telefono</li>
+          <li><strong>Al centesimo</strong> importi interi, mai arrotondati</li>
+        </ul>
+      </section>
+
+      <section id="funzioni" class="sezione">
+        <div class="larghezza">
+          <h2>Tutto quello che serve per i conti in comune</h2>
+          <p class="intro">
+            Pensata per una coppia o una famiglia italiana: conti condivisi e personali, spese divise,
+            estratti conto delle banche, scadenze che tornano ogni mese.
+          </p>
+          <div class="schede">
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M4 12h16M12 4v16" />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+              <h3>Spese divise</h3>
+              <p>50/50 o le quote che volete, per famiglia, per categoria o per singolo movimento.</p>
+            </article>
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 3v18M5 7h14M5 7l-3 7h6zM19 7l-3 7h6z" />
+              </svg>
+              <h3>Chi deve a chi</h3>
+              <p>Il saldo tra i membri, con il dettaglio di come ci si arriva e il pareggio in un clic.</p>
+            </article>
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M4 15v5h16v-5" /></svg>
+              <h3>Import dalla banca</h3>
+              <p>
+                CSV di Intesa, PayPal, Revolut, Satispay e simili, con profili salvati e controllo dei
+                doppioni.
+              </p>
+            </article>
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 3l2 5 5 .5-4 3.5 1.5 5L12 14l-4.5 3 1.5-5-4-3.5L10 8z" />
+              </svg>
+              <h3>Regole automatiche</h3>
+              <p>"ESSELUNGA" diventa Spesa alimentare da sola. Anteprima prima di applicare una regola.</p>
+            </article>
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M4 12a8 8 0 0 1 14-5l2-2v6h-6l2.5-2.5A6 6 0 1 0 18 12" />
+              </svg>
+              <h3>Ricorrenti e previsioni</h3>
+              <p>Affitto, bollette, abbonamenti: le scadenze aperte e il saldo previsto dei prossimi mesi.</p>
+            </article>
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <rect x="5" y="10" width="14" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              <h3>Conti privati</h3>
+              <p>Un conto o un movimento privato lo vede solo chi lo possiede, anche dentro la famiglia.</p>
+            </article>
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></svg>
+              <h3>Dashboard e report</h3>
+              <p>Panoramica di coppia, area personale, confronto tra periodi, export CSV e report PDF.</p>
+            </article>
+            <article class="scheda">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0" />
+              </svg>
+              <h3>Promemoria</h3>
+              <p>Nell'app e come notifiche del browser; con il server Python anche via email e Telegram.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="demo" class="sezione demo">
+        <div class="larghezza">
+          <h2>Provala adesso, qui sotto</h2>
+          <p class="intro">
+            È l'app vera, con la famiglia inventata "Casa Demo": Giulia e Marco, quattro conti e sei mesi di
+            movimenti. Puoi aggiungere spese, cambiare le divisioni e registrare un pareggio. Tutto resta nel
+            tuo browser e si azzera ricaricando.
+          </p>
+          <div class="demo-schede" role="toolbar" aria-label="Apri una pagina della demo">
+            <button type="button" data-pagina="/" aria-pressed="true">Panoramica</button>
+            <button type="button" data-pagina="/movimenti">Movimenti</button>
+            <button type="button" data-pagina="/saldo">Chi deve a chi</button>
+            <button type="button" data-pagina="/previsioni">Previsioni</button>
+            <button type="button" data-pagina="/ricorrenti">Ricorrenti</button>
+            <button type="button" data-pagina="/altro/regole">Regole</button>
+            <button type="button" data-pagina="/movimenti/nuovo">Nuovo movimento</button>
+          </div>
+          <div class="cornice finestra">
+            <div class="finestra-barra" aria-hidden="true">
+              <span></span><span></span><span></span>
+              <code id="demo-indirizzo">noi2contiamo/demo</code>
+            </div>
+            <iframe
+              id="demo-app"
+              src="demo/#/"
+              title="Demo interattiva di Noi2Contiamo"
+              loading="lazy"
+            ></iframe>
+          </div>
+          <p class="nota demo-nota">
+            Si vede meglio a schermo intero:
+            <a id="demo-intera" href="demo/#/">apri la demo in una nuova scheda</a>. Per rientrare dopo
+            "Esci": <code>giulia.demo@example.com</code> oppure <code>marco.demo@example.com</code>, password
+            <code>demo-password-2026</code>.
+          </p>
+        </div>
+      </section>
+
+      <section class="sezione">
+        <div class="larghezza">
+          <h2>Uno sguardo alle schermate</h2>
+          <div class="galleria">
+            <figure class="cornice">
+              <img
+                src="img/saldo.jpg"
+                width="1280"
+                height="800"
+                loading="lazy"
+                alt="Saldo tra i membri: Marco deve 745,18 euro a Giulia, con la tabella di dettaglio"
+              />
+              <figcaption>
+                Chi deve a chi, e perché: spese pagate, quote, entrate e giroconti di ognuno.
+              </figcaption>
+            </figure>
+            <figure class="cornice">
+              <img
+                src="img/movimenti.jpg"
+                width="1280"
+                height="800"
+                loading="lazy"
+                alt="Elenco dei movimenti con filtri per periodo, tipo, conto, membro e categoria"
+              />
+              <figcaption>Movimenti con filtri e ricerca, export e import CSV.</figcaption>
+            </figure>
+            <figure class="cornice">
+              <img
+                src="img/previsioni.jpg"
+                width="1280"
+                height="800"
+                loading="lazy"
+                alt="Grafico del saldo previsto nei prossimi sei mesi"
+              />
+              <figcaption>Il saldo dei prossimi mesi, da scadenze aperte e spesa media.</figcaption>
+            </figure>
+            <figure class="cornice">
+              <img
+                src="img/regole.jpg"
+                width="1280"
+                height="800"
+                loading="lazy"
+                alt="Elenco delle regole automatiche che assegnano categoria e destinatario"
+              />
+              <figcaption>Regole che assegnano categoria e destinatario ai movimenti importati.</figcaption>
+            </figure>
+          </div>
+          <div class="telefoni">
+            <figure class="cornice telefono">
+              <img
+                src="img/telefono.jpg"
+                width="390"
+                height="844"
+                loading="lazy"
+                alt="La panoramica su telefono, con la barra di navigazione in basso"
+              />
+            </figure>
+            <figure class="cornice telefono">
+              <img
+                src="img/telefono-scuro.jpg"
+                width="390"
+                height="844"
+                loading="lazy"
+                alt="Il saldo tra i membri su telefono in tema scuro"
+              />
+            </figure>
+            <div class="telefoni-testo">
+              <h3>Dal telefono, come un'app</h3>
+              <p>
+                È una PWA: si aggiunge alla schermata Home e si apre a tutto schermo. Tema chiaro e scuro
+                secondo il sistema, testi grandi, interfaccia accessibile (WCAG AA).
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="installa" class="sezione installa">
+        <div class="larghezza">
+          <h2>Tre modi di installarla</h2>
+          <p class="intro">
+            Stessa interfaccia in tutti e tre i casi: scegli in base a dove vuoi tenere i dati.
+          </p>
+          <div class="schede tre">
+            <article class="scheda">
+              <h3>Locale</h3>
+              <p class="meta">SQLite sul tuo computer · Node.js 22+, Python 3.12+</p>
+              <pre><code>git clone https://github.com/Mattemn97/noi2contiamo
+cd noi2contiamo
+npm install
+node scripts/uv.mjs sync --project server
+npm run local</code></pre>
+              <p>Poi apri <code>http://localhost:8000</code>. Il database si crea da solo.</p>
+            </article>
+            <article class="scheda">
+              <h3>Docker <span class="etichetta">da provare</span></h3>
+              <p class="meta">SQLite in un volume · Docker con Compose</p>
+              <pre><code>cp .env.example .env
+# metti un segreto in N2C_SECRET_KEY
+docker compose up -d --build</code></pre>
+              <p>I dati stanno nel volume <code>n2c-data</code>: fai il backup di quello.</p>
+            </article>
+            <article class="scheda">
+              <h3>Firebase Spark</h3>
+              <p class="meta">Cloud Firestore, piano gratuito · un account Google</p>
+              <pre><code>cp .env.example .env
+cp .firebaserc.example .firebaserc
+# configurazione della web app in .env
+npm run deploy:firebase</code></pre>
+              <p>Niente carta di credito. Email e Telegram restano fuori (servirebbe il piano Blaze).</p>
+            </article>
+          </div>
+          <p class="nota">
+            Le istruzioni complete, con i passi nella console di Firebase e le variabili d'ambiente, sono nel
+            <a href="https://github.com/Mattemn97/noi2contiamo#tre-modi-di-installarla">README</a>.
+          </p>
+        </div>
+      </section>
+
+      <section class="sezione dati">
+        <div class="larghezza dati-griglia">
+          <div>
+            <h2>I tuoi conti restano tuoi</h2>
+            <p>
+              Nessun server nostro, nessun account da creare da noi, nessuna pubblicità o statistica di
+              navigazione. I dati stanno su SQLite nel tuo computer o nel tuo progetto Firebase, e li esporti
+              quando vuoi in un file unico.
+            </p>
+          </div>
+          <ul class="spunte">
+            <li>Ogni dato è isolato per famiglia, con le stesse regole sul server Python e su Firestore.</li>
+            <li>Importi sempre in centesimi interi: nessun errore di arrotondamento sui decimali.</li>
+            <li>Open banking facoltativo tramite Enable Banking, gratuito per uso personale.</li>
+            <li>Codice aperto con licenza MIT: puoi leggerlo, modificarlo e ospitarlo dove vuoi.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="domande" class="sezione">
+        <div class="larghezza stretta">
+          <h2>Domande frequenti</h2>
+          <details>
+            <summary>Costa qualcosa?</summary>
+            <p>
+              No. Il codice è gratuito e aperto. In locale e in Docker non paghi niente; su Firebase resti
+              nelle quote gratuite del piano Spark, più che sufficienti per una famiglia.
+            </p>
+          </details>
+          <details>
+            <summary>Si collega direttamente alla mia banca?</summary>
+            <p>
+              Sì, tramite Enable Banking (circa 2500 banche europee, gratuito per uso personale): dal server
+              Python, da una Cloud Function oppure scaricando un CSV da importare. Senza open banking basta
+              l'estratto conto in CSV della banca.
+            </p>
+          </details>
+          <details>
+            <summary>Va bene anche per più di due persone?</summary>
+            <p>
+              Sì: una famiglia può avere più membri, ognuno con il suo account, e le quote di divisione si
+              impostano per ognuno. Si entra con un link di invito.
+            </p>
+          </details>
+          <details>
+            <summary>Posso spostare i dati da Firebase al server Python?</summary>
+            <p>
+              Ogni famiglia si esporta in un file unico e si reimporta, ma il passaggio automatico tra i due
+              backend non c'è ancora.
+            </p>
+          </details>
+          <details>
+            <summary>In che lingua è?</summary>
+            <p>
+              L'interfaccia è in italiano. I testi stanno in un catalogo separato, pronto per una seconda
+              lingua. Issue e pull request in inglese sono benvenute.
+            </p>
+          </details>
+        </div>
+      </section>
+
+      <section class="chiusura">
+        <div class="larghezza">
+          <h2>Pronti a contare in due?</h2>
+          <div class="azioni centro">
+            <a class="bottone primario" href="demo/#/">Apri la demo</a>
+            <a class="bottone" href="https://github.com/Mattemn97/noi2contiamo">Vai al codice su GitHub</a>
+            <a class="bottone" href="https://github.com/Mattemn97/noi2contiamo/releases">Ultima release</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="piede">
+      <div class="larghezza piede-riga">
+        <p>
+          Noi2Contiamo · licenza <a href="https://github.com/Mattemn97/noi2contiamo/blob/main/LICENSE">MIT</a>
+        </p>
+        <p>
+          <a href="https://github.com/Mattemn97/noi2contiamo/issues">Segnala un problema</a> ·
+          <a href="https://github.com/Mattemn97/noi2contiamo/blob/main/CONTRIBUTING.md">Contribuisci</a>
+        </p>
+      </div>
+    </footer>
+    <script src="sito.js" defer></script>
+  </body>
+</html>

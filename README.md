@@ -5,6 +5,8 @@
 
 Web app open source per tenere la contabilità di coppia e di famiglia. Ognuno si registra, crea o entra in una famiglia, registra o importa i movimenti, divide le spese e vede chi deve quanto a chi. Pensata per uso privato e da installare in casa (self hosted), senza abbonamenti. L'interfaccia è in italiano, funziona da telefono (PWA) ed è disponibile in tema chiaro e scuro.
 
+**▶ Provala nel browser, senza installare niente: [mattemn97.github.io/noi2contiamo](https://mattemn97.github.io/noi2contiamo/)** (demo con dati inventati).
+
 Licenza [MIT](./LICENSE).
 
 > **English summary.** Noi2Contiamo is an open source, self hosted personal finance app for couples and families: shared expense splitting, member balance settlement, bank CSV import with saved profiles, automatic rules, recurring payments and forecasts, dashboards, PDF and CSV reports. React + TypeScript PWA, with a Python (FastAPI + SQLite) server or Firebase free plan. The interface is in Italian.
@@ -152,3 +154,7 @@ Tutto gira in locale, non serve una CI. Al commit un hook lancia ESLint, Prettie
 ## Per chi sviluppa
 
 Monorepo npm: `apps/web` (React 19 e Vite), `packages/core` (dominio puro in TypeScript), `packages/data` (interfaccia `DataAdapter`: memoria, Firebase, HTTP), `server/` (FastAPI, SQLAlchemy, Alembic), `firebase/` (regole e indici). Le decisioni di progetto stanno in `docs/specs/`, la mappa delle funzioni in `docs/scope/scope.md`. Vedi anche [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Sito e demo
+
+Il sito di presentazione sta in `site/`; la demo è la stessa app compilata con l'adapter in memoria (`--mode demo`, dati inventati in `apps/web/src/demo/seed.ts`, accesso già fatto come Giulia). `npm run build:site` mette tutto in `_site/`. Per pubblicarlo: _Settings > Pages > Source: GitHub Actions_ (una volta sola), poi _Actions > Sito > Run workflow_.

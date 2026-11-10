@@ -1,0 +1,18 @@
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-sm);
+  text-align: center;
+}
+
+.banner a {
+  color: var(--color-accent);
+  font-weight: var(--weight-medium);
+}

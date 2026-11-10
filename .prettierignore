@@ -17,3 +17,7 @@ skills-lock.json
 # Generati da `npm run gen:api`
 packages/data/openapi.json
 packages/data/src/api.gen.ts
+
+# Sito del progetto (npm run build:site)
+dist-demo/
+_site/
