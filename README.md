@@ -11,7 +11,7 @@ Licenza [MIT](./LICENSE).
 
 ## Stato del progetto
 
-Versione `1.4.0`. La modalità con server Python e la pubblicazione su Firebase sono state provate su un'installazione reale, ma i test automatici delle regole Firestore (emulatore, serve Java 21) non sono ancora stati eseguiti. Non sono ancora stati provati:
+Versione `1.5.0`. La modalità con server Python e la pubblicazione su Firebase sono state provate su un'installazione reale, ma i test automatici delle regole Firestore (emulatore, serve Java 21) non sono ancora stati eseguiti. Non sono ancora stati provati:
 
 - l'immagine Docker e `compose.yaml`;
 - l'invio vero di email e Telegram.

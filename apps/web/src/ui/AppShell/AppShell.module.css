@@ -1,4 +1,5 @@
-/* Prima il telefono: barra in basso fissa con il menù; da 64rem barra laterale con tutte le sezioni. */
+/* Prima il telefono: barra in basso fissa con il menù; da 64rem barra laterale con tutte le sezioni,
+   comprimibile a sole icone (data-collapsed sul guscio). */
 .shell {
   min-block-size: 100dvh;
 }
@@ -42,7 +43,7 @@
 
 .bar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   block-size: var(--nav-height);
   margin: 0;
   padding: 0 var(--space-1);
@@ -86,19 +87,6 @@
 
 .navItem[aria-current="page"] {
   color: var(--color-accent);
-}
-
-.navItem[data-primary] .navIcon {
-  inline-size: 2.5rem;
-  block-size: 2.5rem;
-  padding: var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--color-accent);
-  color: var(--color-on-accent);
-}
-
-.navItem[data-primary] .navLabel {
-  color: var(--color-text-secondary);
 }
 
 .navItem:focus-visible {
@@ -154,19 +142,6 @@
   color: var(--color-text);
 }
 
-.side .navItem[data-primary] .navIcon {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  color: var(--color-accent);
-}
-
-.side .navItem[data-primary] .navLabel {
-  color: var(--color-text);
-}
-
 .side .navBadge,
 .drawerNav .navBadge {
   margin-inline-start: auto;
@@ -219,6 +194,37 @@
     min-block-size: 100%;
   }
 
+  .sideHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .collapse {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.75rem;
+    block-size: 2.75rem;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+
+  .collapse:hover {
+    background: var(--color-surface-sunken);
+    color: var(--color-text);
+  }
+
+  .collapse:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: -2px;
+  }
+
   .brand {
     padding: 0 var(--space-3);
     font-size: var(--text-lg);
@@ -236,6 +242,47 @@
 
   .main {
     padding: var(--space-8) var(--space-8) var(--space-12);
+  }
+
+  /* Barra compressa: solo icone, nomi e titoli dei gruppi nascosti a vista ma letti dagli screen reader. */
+  .shell[data-collapsed] {
+    grid-template-columns: 4.5rem minmax(0, 1fr);
+  }
+
+  .shell[data-collapsed] .nav {
+    padding-inline: var(--space-2);
+  }
+
+  .shell[data-collapsed] .sideHeader {
+    justify-content: center;
+  }
+
+  .shell[data-collapsed] .brand,
+  .shell[data-collapsed] .sectionTitle,
+  .shell[data-collapsed] .side .navLabel {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .shell[data-collapsed] .side .navItem {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .shell[data-collapsed] .side .navBadge {
+    position: absolute;
+    inset-block-start: var(--space-1);
+    inset-inline-end: var(--space-1);
+    margin: 0;
+  }
+
+  .shell[data-collapsed] .appearance {
+    display: none;
   }
 }
 

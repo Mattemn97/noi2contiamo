@@ -1,11 +1,12 @@
-// Guscio dell'app: salto al contenuto, barra laterale con tutte le sezioni da 64rem; sotto, barra in
-// basso con le voci principali e "Menu", che apre le stesse sezioni in un pannello laterale.
+// Guscio dell'app: salto al contenuto, barra laterale con tutte le sezioni da 64rem (comprimibile a sole
+// icone); sotto, barra in basso con le voci principali e "Menu", che apre le sezioni in un pannello laterale.
 import {
   Bell,
   LayoutDashboard,
   List,
   Menu,
-  Plus,
+  PanelLeftClose,
+  PanelLeftOpen,
   Repeat,
   Scale,
   Settings,
@@ -28,7 +29,6 @@ import { ThemeSwitcher } from "../ThemeSwitcher/ThemeSwitcher";
 import styles from "./AppShell.module.css";
 
 export type NavId =
-  | "add"
   | "overview"
   | "transactions"
   | "personal"
@@ -56,8 +56,6 @@ interface NavSection {
   readonly title: MessageKey;
   readonly items: readonly NavItem[];
 }
-
-const ADD: NavItem = { id: "add", href: "/movimenti/nuovo", label: "nav.add", icon: Plus };
 
 export const NAV_SECTIONS: readonly NavSection[] = [
   {
@@ -94,18 +92,18 @@ export const NAV_SECTIONS: readonly NavSection[] = [
   },
 ];
 
-/** Tutte le voci, "Aggiungi" compreso: per riconoscere la pagina corrente dal percorso. */
-export const NAV_ITEMS: readonly NavItem[] = [ADD, ...NAV_SECTIONS.flatMap((s) => s.items)];
+/** Tutte le voci, per riconoscere la pagina corrente dal percorso. */
+export const NAV_ITEMS: readonly NavItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 
 /** Le voci della barra in basso sul telefono; le altre stanno nel menù. */
-const BAR_IDS: readonly NavId[] = ["overview", "transactions", "add", "personal"];
+const BAR_IDS: readonly NavId[] = ["overview", "transactions", "personal"];
 const BAR_ITEMS = NAV_ITEMS.filter((item) => BAR_IDS.includes(item.id)).sort(
   (a, b) => BAR_IDS.indexOf(a.id) - BAR_IDS.indexOf(b.id),
 );
 
 /**
  * La voce di un percorso: quella con l'indirizzo più lungo che lo contiene ("/" solo esatto), così
- * `/ricorrenti/suggerimenti` è Ricorrenti e `/movimenti/nuovo` è Aggiungi.
+ * `/ricorrenti/suggerimenti` è Ricorrenti e `/movimenti/nuovo` è Movimenti.
  */
 export function navFor(pathname: string): NavId | undefined {
   const matches = NAV_ITEMS.filter((item) =>
@@ -123,16 +121,37 @@ export interface AppShellProps {
 
 export const MAIN_ID = "contenuto";
 
+/** Barra laterale compressa a sole icone: preferenza del dispositivo, come il tema. */
+export const NAV_COLLAPSED_KEY = "n2c.navCollapsed";
+
+function readCollapsed(): boolean {
+  try {
+    return localStorage.getItem(NAV_COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveCollapsed(collapsed: boolean): void {
+  try {
+    if (collapsed) localStorage.setItem(NAV_COLLAPSED_KEY, "1");
+    else localStorage.removeItem(NAV_COLLAPSED_KEY);
+  } catch {
+    // Storage bloccato: la scelta vale finché la pagina resta aperta.
+  }
+}
+
 function NavLink({
   item,
   current,
   badge,
-  primary,
+  collapsed = false,
 }: {
   readonly item: NavItem;
   readonly current: NavId | undefined;
   readonly badge: number;
-  readonly primary?: boolean;
+  /** Barra compressa: il nome resta per gli screen reader e compare come suggerimento. */
+  readonly collapsed?: boolean;
 }) {
   const { href, label, icon: Icon } = item;
   return (
@@ -140,7 +159,7 @@ function NavLink({
       className={cx(styles.navItem)}
       href={href}
       aria-current={item.id === current ? "page" : undefined}
-      data-primary={primary ? "" : undefined}
+      title={collapsed ? t(label) : undefined}
     >
       <Icon aria-hidden="true" strokeWidth={1.75} size={20} className={cx(styles.navIcon)} />
       <span className={cx(styles.navLabel)}>{t(label)}</span>
@@ -152,9 +171,11 @@ function NavLink({
 function Sections({
   current,
   badges,
+  collapsed = false,
 }: {
   readonly current: NavId | undefined;
   readonly badges: Partial<Record<NavId, number>>;
+  readonly collapsed?: boolean;
 }) {
   return (
     <>
@@ -166,7 +187,7 @@ function Sections({
           <ul className={cx(styles.sectionList)}>
             {section.items.map((item) => (
               <li key={item.id} className={cx(styles.navEntry)}>
-                <NavLink item={item} current={current} badge={badges[item.id] ?? 0} />
+                <NavLink item={item} current={current} badge={badges[item.id] ?? 0} collapsed={collapsed} />
               </li>
             ))}
           </ul>
@@ -178,6 +199,8 @@ function Sections({
 
 export function AppShell({ current, badges = {}, children }: AppShellProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const toggleLabel = t(collapsed ? "nav.expand" : "nav.collapse");
   // Sul pulsante Menu: la somma dei numeri delle voci che stanno solo nel menù.
   const menuBadge = NAV_ITEMS.filter((item) => !BAR_IDS.includes(item.id)).reduce(
     (sum, item) => sum + (badges[item.id] ?? 0),
@@ -185,18 +208,35 @@ export function AppShell({ current, badges = {}, children }: AppShellProps) {
   );
   const inMenu = current !== undefined && !BAR_IDS.includes(current);
   return (
-    <div className={cx(styles.shell)}>
+    <div className={cx(styles.shell)} data-collapsed={collapsed ? "" : undefined}>
       <a className={cx(styles.skip)} href={`#${MAIN_ID}`}>
         {t("shell.skip")}
       </a>
       <nav className={cx(styles.nav)} aria-label={t("nav.label")}>
         {/* Da 64rem: barra laterale con tutte le sezioni. */}
-        <div className={cx(styles.side)}>
-          <p className={cx(styles.brand)}>{t("app.title")}</p>
-          <div className={cx(styles.addEntry)}>
-            <NavLink item={ADD} current={current} badge={0} primary />
+        <div className={cx(styles.side)} id="nav-side">
+          <div className={cx(styles.sideHeader)}>
+            <p className={cx(styles.brand)}>{t("app.title")}</p>
+            <button
+              type="button"
+              className={cx(styles.collapse)}
+              aria-controls="nav-side"
+              aria-expanded={!collapsed}
+              aria-label={toggleLabel}
+              title={toggleLabel}
+              onClick={() => {
+                saveCollapsed(!collapsed);
+                setCollapsed(!collapsed);
+              }}
+            >
+              {collapsed ? (
+                <PanelLeftOpen aria-hidden="true" strokeWidth={1.75} size={20} />
+              ) : (
+                <PanelLeftClose aria-hidden="true" strokeWidth={1.75} size={20} />
+              )}
+            </button>
           </div>
-          <Sections current={current} badges={badges} />
+          <Sections current={current} badges={badges} collapsed={collapsed} />
           <div className={cx(styles.appearance)}>
             <ThemeSwitcher />
             <AccentPicker />
@@ -206,12 +246,7 @@ export function AppShell({ current, badges = {}, children }: AppShellProps) {
         <ul className={cx(styles.bar)}>
           {BAR_ITEMS.map((item) => (
             <li key={item.id} className={cx(styles.navEntry)}>
-              <NavLink
-                item={item}
-                current={current}
-                badge={badges[item.id] ?? 0}
-                primary={item.id === "add"}
-              />
+              <NavLink item={item} current={current} badge={badges[item.id] ?? 0} />
             </li>
           ))}
           <li className={cx(styles.navEntry)}>

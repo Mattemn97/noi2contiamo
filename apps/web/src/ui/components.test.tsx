@@ -196,7 +196,6 @@ describe("AppShell (AC-6)", () => {
       .getAllByRole("link")
       .map((link) => link.textContent);
     for (const label of [
-      "Aggiungi",
       "Panoramica",
       "Saldo tra i membri",
       "Importa",
@@ -212,6 +211,7 @@ describe("AppShell (AC-6)", () => {
     ])
       expect(labels).toContain(label);
     expect(labels).not.toContain("Altro");
+    expect(labels).not.toContain("Aggiungi");
     for (const link of within(nav).getAllByRole("link", { name: "Movimenti" }))
       expect(link.getAttribute("aria-current")).toBe("page");
     expect(screen.getByRole("main").id).toBe("contenuto");
@@ -239,10 +239,44 @@ describe("AppShell (AC-6)", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
+  it("la barra laterale si comprime a sole icone e lo ricorda sul dispositivo", async () => {
+    const user = userEvent.setup();
+    localStorage.removeItem("n2c.navCollapsed");
+    const { container, unmount } = render(
+      <AppShell current="overview" badges={{ reminders: 3 }}>
+        <p>Pagina</p>
+      </AppShell>,
+    );
+    const shell = container.firstElementChild!;
+    const toggle = screen.getByRole("button", { name: "Comprimi il menù" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
+    expect(shell.hasAttribute("data-collapsed")).toBe(false);
+    await user.click(toggle);
+    expect(shell.hasAttribute("data-collapsed")).toBe(true);
+    const expand = screen.getByRole("button", { name: "Espandi il menù" });
+    expect(expand.getAttribute("aria-expanded")).toBe("false");
+    // Compressa: i nomi restano accessibili e compaiono come suggerimento.
+    const nav = screen.getByRole("navigation", { name: "Navigazione principale" });
+    const rules = within(nav).getByRole("link", { name: "Regole" });
+    expect(rules.getAttribute("title")).toBe("Regole");
+    expect(within(nav).getAllByRole("link", { name: /Promemorias*3/ }).length).toBeGreaterThan(0);
+    expect(localStorage.getItem("n2c.navCollapsed")).toBe("1");
+    unmount();
+
+    render(
+      <AppShell current="overview">
+        <p>Pagina</p>
+      </AppShell>,
+    );
+    await user.click(screen.getByRole("button", { name: "Espandi il menù" }));
+    expect(localStorage.getItem("n2c.navCollapsed")).toBeNull();
+    expect(screen.getByRole("button", { name: "Comprimi il menù" })).toBeTruthy();
+  });
+
   it("riconosce la voce dal percorso, anche nelle sottopagine", () => {
     expect(navFor("/")).toBe("overview");
     expect(navFor("/movimenti")).toBe("transactions");
-    expect(navFor("/movimenti/nuovo")).toBe("add");
+    expect(navFor("/movimenti/nuovo")).toBe("transactions");
     expect(navFor("/movimenti/abc")).toBe("transactions");
     expect(navFor("/ricorrenti/suggerimenti")).toBe("recurring");
     expect(navFor("/altro/regole/123")).toBe("rules");
