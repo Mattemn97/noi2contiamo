@@ -126,6 +126,53 @@ describe("import CSV", () => {
     expect(await screen.findByText("Nessun import per ora.")).toBeTruthy();
   });
 
+  it("il salvataggio mostra una barra che avanza a gruppi fino alla fine", async () => {
+    const { adapter, familyId } = await seeded();
+    // I salvataggi aspettano un via libera, così si vede la barra tra un gruppo e l'altro.
+    const gates: (() => void)[] = [];
+    const slow: DataAdapter = {
+      ...adapter,
+      commit: (f, ops) =>
+        new Promise<void>((resolve) => gates.push(resolve)).then(() => adapter.commit(f, ops)),
+    };
+    const user = userEvent.setup();
+    renderApp(slow, "/importa");
+    await chooseAccount(user);
+    const rows = Array.from(
+      { length: 45 },
+      (_, i) => `${String((i % 28) + 1).padStart(2, "0")}/10/2026;Spesa ${i};-${i + 1},00`,
+    );
+    const csv = new File([["Data;Descrizione;Importo", ...rows].join("\n")], "grande.csv", {
+      type: "text/csv",
+    });
+    await user.upload(screen.getByLabelText("File CSV"), csv);
+    await user.click(await screen.findByRole("button", { name: "Avanti" }));
+    await user.click(await screen.findByRole("button", { name: "Importa 45 movimenti" }));
+    await user.click(await screen.findByRole("button", { name: "Importa" }));
+
+    const bar = await screen.findByRole("progressbar", { name: "Salvataggio in corso" });
+    const total = Number(/di (\d+)/.exec(bar.getAttribute("aria-valuetext") ?? "")?.[1]);
+    expect(total).toBeGreaterThanOrEqual(46);
+    expect(bar.getAttribute("aria-valuetext")).toBe(`0 di ${total}`);
+    expect(screen.getByRole<HTMLButtonElement>("button", { name: "Annulla" }).disabled).toBe(true);
+
+    await waitFor(() => {
+      expect(gates).toHaveLength(1);
+    });
+    gates.shift()!();
+    await waitFor(() => {
+      expect(screen.getByRole("progressbar").getAttribute("aria-valuetext")).toBe(`20 di ${total}`);
+    });
+    while (!screen.queryByText(/Salvati 45 movimenti/)) {
+      await waitFor(() => {
+        expect(gates.length > 0 || screen.queryByText(/Salvati 45 movimenti/) !== null).toBe(true);
+      });
+      gates.shift()?.();
+    }
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(await list(adapter, familyId, "transactions")).toHaveLength(45);
+  });
+
   it("senza conto il file non si legge", async () => {
     const { adapter } = await seeded();
     const user = userEvent.setup();

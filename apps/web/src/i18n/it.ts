@@ -553,6 +553,9 @@ export const it = {
   "import.error.save":
     "Import non riuscito. Se una parte è stata salvata la trovi nello storico qui sotto: puoi annullarla, oppure reimportare il file (le righe già salvate si saltano).",
   "debug.errorCode": "(codice: {code})",
+  "import.progress.save": "Salvataggio in corso",
+  "import.progress.undo": "Annullamento in corso",
+  "import.progress.value": "{done} di {total}",
   "debug.title": "Diagnostica",
   "debug.help":
     "Scrive nella console del browser (F12 > Console) ogni azione dell'app: pagine, letture e salvataggi, import, errori. Mostra solo codici, conteggi e tempi: importi, descrizioni, nomi, email e chiavi restano nascosti. Gli errori si registrano sempre.",

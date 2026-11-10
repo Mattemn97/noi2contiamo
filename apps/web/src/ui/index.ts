@@ -11,6 +11,7 @@ export { DataTable, type DataTableColumn } from "./DataTable/DataTable";
 export { Link, Menu, Tooltip, type MenuAction } from "./Menu/Menu";
 export { MoneyField, PercentField } from "./MoneyField/MoneyField";
 export { PageHeader } from "./PageHeader/PageHeader";
+export { ProgressBar } from "./Progress/ProgressBar";
 export { ComboBox, Select, type Option } from "./Select/Select";
 export { EmptyState, ErrorState, Skeleton } from "./States/States";
 export { StatusBadge, type Status } from "./StatusBadge/StatusBadge";

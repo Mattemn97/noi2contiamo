@@ -54,6 +54,7 @@ import {
   ErrorState,
   formatDate,
   PageHeader,
+  ProgressBar,
   Select,
   SegmentedControl,
   Skeleton,
@@ -687,6 +688,7 @@ function PreviewStep({
     declined,
   ]);
 
+  const [progress, setProgress] = useState<Progress | null>(null);
   const save = useMutation({
     mutationFn: async () => {
       if (!plan || !account) return null;
@@ -714,7 +716,8 @@ function PreviewStep({
         ...(hook ? { hook } : {}),
         ...(doc ? { profile: doc } : {}),
       });
-      const chunks = chunkOps<CommitOp>(final.ops);
+      const chunks = chunkOps<CommitOp>(final.ops, PROGRESS_CHUNK);
+      setProgress({ done: 0, total: final.ops.length });
       logInfo("import.save", {
         step: bankRows ? "bank" : "csv",
         counts: final.counts,
@@ -727,6 +730,10 @@ function PreviewStep({
         if (!result.ok)
           logWarn("import.save.chunk", { chunk: index + 1, chunks: chunks.length, error: result.error });
         unwrap(result);
+        setProgress({
+          done: Math.min((index + 1) * PROGRESS_CHUNK, final.ops.length),
+          total: final.ops.length,
+        });
       }
       logInfo("import.save.done", { batchId, counts: final.counts });
       return final.counts;
@@ -734,6 +741,9 @@ function PreviewStep({
     onSuccess: async (counts) => {
       await client.invalidateQueries({ queryKey: keys.family(family.id) });
       if (counts) onDone(counts);
+    },
+    onSettled: () => {
+      setProgress(null);
     },
   });
 
@@ -883,11 +893,12 @@ function PreviewStep({
           title={t("import.confirm.title")}
           isOpen
           onOpenChange={(open) => {
-            if (!open) setConfirming(false);
+            // Durante il salvataggio la finestra resta aperta: chiuderla non fermerebbe le scritture.
+            if (!open && !save.isPending) setConfirming(false);
           }}
           footer={(close) => (
             <>
-              <Button variant="secondary" onPress={close}>
+              <Button variant="secondary" onPress={close} isDisabled={save.isPending}>
                 {t("common.cancel")}
               </Button>
               <Button
@@ -906,9 +917,32 @@ function PreviewStep({
           )}
         >
           <p>{t("import.confirm.body", { count: String(importable), account: account.name })}</p>
+          {progress ? <ImportProgress label={t("import.progress.save")} progress={progress} /> : null}
         </Dialog>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Operazioni per chiamata quando si salva o si annulla un import: gruppi piccoli e in ordine (lotto,
+ * destinatari, movimenti) così la barra avanza mentre il backend scrive.
+ */
+const PROGRESS_CHUNK = 20;
+
+interface Progress {
+  readonly done: number;
+  readonly total: number;
+}
+
+function ImportProgress({ label, progress }: { readonly label: string; readonly progress: Progress }) {
+  return (
+    <ProgressBar
+      label={label}
+      value={progress.done}
+      max={progress.total}
+      valueText={t("import.progress.value", { done: String(progress.done), total: String(progress.total) })}
+    />
   );
 }
 
@@ -998,6 +1032,7 @@ function HistoryCard({
   const toast = useToast();
   const { family } = useFamily();
   const [undoing, setUndoing] = useState<ImportBatch | null>(null);
+  const [undoProgress, setUndoProgress] = useState<Progress | null>(null);
   const undo = useMutation({
     mutationFn: async (batch: ImportBatch) => {
       const txs = await allPages<Transaction>(async (after) =>
@@ -1008,12 +1043,19 @@ function HistoryCard({
           }),
         ),
       );
-      for (const chunk of chunkOps<CommitOp>(undoImportOps(batch, txs)))
+      const ops = undoImportOps(batch, txs);
+      setUndoProgress({ done: 0, total: ops.length });
+      for (const [index, chunk] of chunkOps<CommitOp>(ops, PROGRESS_CHUNK).entries()) {
         unwrap(await adapter.commit(family.id, chunk));
+        setUndoProgress({ done: Math.min((index + 1) * PROGRESS_CHUNK, ops.length), total: ops.length });
+      }
     },
     onSuccess: async () => {
       await client.invalidateQueries({ queryKey: keys.family(family.id) });
       toast.show({ message: t("import.undo.done") });
+    },
+    onSettled: () => {
+      setUndoProgress(null);
     },
   });
   const sorted = [...batches].sort((a, b) => b.importedAtMs - a.importedAtMs);
@@ -1037,6 +1079,7 @@ function HistoryCard({
               <Button
                 size="sm"
                 variant="secondary"
+                isDisabled={undo.isPending}
                 onPress={() => {
                   setUndoing(b);
                 }}
@@ -1047,6 +1090,7 @@ function HistoryCard({
           ))}
         </ul>
       )}
+      {undoProgress ? <ImportProgress label={t("import.progress.undo")} progress={undoProgress} /> : null}
       {undo.isError ? (
         <p role="alert" className={cx(styles.error)}>
           {t("import.undo.error")}

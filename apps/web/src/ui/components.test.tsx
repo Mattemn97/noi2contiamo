@@ -13,6 +13,7 @@ import {
   Dialog,
   FilterBar,
   MoneyField,
+  ProgressBar,
   ThemeSwitcher,
   UiProvider,
   useToast,
@@ -20,6 +21,17 @@ import {
 } from ".";
 import { ChartFrame } from "./charts";
 import { TOAST_DURATION_MS } from "./Toast/Toast";
+
+describe("ProgressBar", () => {
+  it("è un progressbar con etichetta, valore letto e limiti rispettati", () => {
+    render(<ProgressBar label="Salvataggio in corso" value={250} max={185} valueText="185 di 185" />);
+    const bar = screen.getByRole("progressbar", { name: "Salvataggio in corso" });
+    expect(bar.getAttribute("aria-valuenow")).toBe("185");
+    expect(bar.getAttribute("aria-valuemax")).toBe("185");
+    expect(bar.getAttribute("aria-valuetext")).toBe("185 di 185");
+    expect(screen.getByText("185 di 185")).toBeTruthy();
+  });
+});
 
 describe("Button", () => {
   it("si attiva con Invio e Spazio", async () => {
