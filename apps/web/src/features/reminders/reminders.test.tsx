@@ -59,11 +59,12 @@ function renderApp(adapter: Awaited<ReturnType<typeof seeded>>["adapter"], path:
 }
 
 describe("promemoria", () => {
-  it("mostra la scadenza di oggi con il numero accanto ad Altro e la archivia", async () => {
+  it("mostra la scadenza di oggi con il numero accanto a Promemoria e Menu, e la archivia", async () => {
     const { adapter, familyId } = await seeded();
     renderApp(adapter, "/promemoria");
     expect(await screen.findByText(/Affitto scade oggi/)).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Altro\s*1/ })).toBeTruthy();
+    expect(screen.getAllByRole("link", { name: /Promemoria\s*1/ }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /Menu\s*1/ })).toBeTruthy();
 
     await userEvent.click(screen.getByRole("button", { name: "Fatto" }));
     expect(await screen.findByText("Nessun promemoria")).toBeTruthy();

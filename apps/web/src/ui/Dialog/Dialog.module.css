@@ -59,8 +59,27 @@
   gap: var(--space-2);
 }
 
+/* Menù laterale: pannello a tutta altezza da sinistra, a ogni larghezza. */
+.overlayDrawer {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.modal[data-variant="drawer"] {
+  inline-size: min(20rem, 85vw);
+  max-block-size: none;
+  block-size: 100dvh;
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  border-inline-start: 0;
+  padding-block-start: env(safe-area-inset-top);
+}
+
+.modal[data-variant="drawer"][data-entering] {
+  animation: slide var(--duration-base) var(--ease-standard);
+}
+
 @media (min-width: 48rem) {
-  .overlay {
+  .overlay:not(.overlayDrawer) {
     align-items: center;
     padding: var(--space-6);
   }
@@ -83,6 +102,13 @@
 
 @keyframes fade {
   from {
+    opacity: 0;
+  }
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-2rem);
     opacity: 0;
   }
 }

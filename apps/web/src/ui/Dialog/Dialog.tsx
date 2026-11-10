@@ -1,4 +1,5 @@
-// Dialog (finestra centrata; foglio dal basso sotto 48rem), Sheet (sempre dal basso), ConfirmDialog.
+// Dialog (finestra centrata; foglio dal basso sotto 48rem), Sheet (sempre dal basso), Drawer (pannello
+// laterale da sinistra, per il menù), ConfirmDialog.
 // Esc chiude, il focus resta dentro e torna al bottone che ha aperto.
 import { X } from "lucide-react";
 import type { ReactElement, ReactNode } from "react";
@@ -21,7 +22,7 @@ export interface DialogProps extends Pick<ModalOverlayProps, "isOpen" | "onOpenC
   /** Bottone che apre il dialogo; senza, il dialogo è controllato da `isOpen`. */
   readonly trigger?: ReactElement;
   readonly footer?: (close: () => void) => ReactNode;
-  readonly variant?: "dialog" | "sheet";
+  readonly variant?: "dialog" | "sheet" | "drawer";
   readonly role?: "dialog" | "alertdialog";
 }
 
@@ -36,7 +37,11 @@ export function Dialog({
   ...overlayProps
 }: DialogProps) {
   const modal = (
-    <ModalOverlay {...overlayProps} isDismissable={isDismissable} className={cx(styles.overlay)}>
+    <ModalOverlay
+      {...overlayProps}
+      isDismissable={isDismissable}
+      className={cx(styles.overlay, variant === "drawer" && styles.overlayDrawer)}
+    >
       <Modal className={cx(styles.modal)} data-variant={variant}>
         <AriaDialog className={cx(styles.dialog)} role={role}>
           {({ close }) => (
@@ -71,6 +76,10 @@ export function Dialog({
 
 export function Sheet(props: Omit<DialogProps, "variant">) {
   return <Dialog {...props} variant="sheet" />;
+}
+
+export function Drawer(props: Omit<DialogProps, "variant">) {
+  return <Dialog {...props} variant="drawer" />;
 }
 
 export interface ConfirmDialogProps extends Omit<DialogProps, "footer" | "role" | "children"> {

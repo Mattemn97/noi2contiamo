@@ -111,7 +111,7 @@ export function UiCatalog() {
   const [period, setPeriod] = useState<Parameters<typeof DateRangePicker>[0]["value"]>(null);
 
   return (
-    <AppShell current="more">
+    <AppShell current="settings">
       <PageHeader title={t("dev.title")} subtitle={t("dev.subtitle")} actions={<ThemeSwitcher />} />
 
       <div className={cx(styles.sections)}>

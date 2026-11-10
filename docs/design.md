@@ -92,8 +92,8 @@ Pesi: `--weight-regular` 400, `--weight-medium` 500, `--weight-semibold` 600. Ni
 
 - Punti di rottura (min width, in `rem` così seguono lo zoom): `--bp-sm` 40rem, `--bp-md` 48rem, `--bp-lg` 64rem, `--bp-xl` 80rem. Nelle CSS Modules si scrivono come valori letterali dentro `@media (min-width: 48rem)` (le custom properties non funzionano nelle media query); la tabella qui è la fonte.
 - Contenuto: larghezza massima 72rem, centrato.
-- Sotto `64rem`: barra di navigazione in basso, fissa, con 5 voci (Panoramica, Movimenti, Aggiungi al centro come azione principale, Personale, Altro), rispetto di `env(safe-area-inset-bottom)`.
-- Da `64rem`: barra laterale a sinistra con le stesse voci più le pagine secondarie.
+- Sotto `64rem`: barra di navigazione in basso, fissa, con 5 voci (Panoramica, Movimenti, Aggiungi al centro come azione principale, Personale, Menu), rispetto di `env(safe-area-inset-bottom)`. "Menu" apre un pannello laterale da sinistra con tutte le sezioni.
+- Da `64rem`: barra laterale con "Aggiungi" in cima e le sezioni Principale, Import e automazioni, Gestione (con Impostazioni); "Altro" non esiste più, `/altro` rimanda a `/impostazioni`.
 - Dialoghi: sotto `48rem` diventano un foglio che sale dal basso a tutta larghezza; sopra, finestra centrata larga al massimo 32rem.
 - Dashboard: una colonna sul telefono, due da `48rem`, tre da `80rem`. Ogni grafico occupa una card.
 - Nessuno scorrimento orizzontale della pagina a 320px; le tabelle larghe scorrono dentro il loro contenitore con la prima colonna fissa.

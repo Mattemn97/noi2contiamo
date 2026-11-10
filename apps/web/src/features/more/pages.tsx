@@ -1,4 +1,4 @@
-// Pagine piccole del filo base: altro (account, tema, server), 404.
+// Pagine piccole del filo base: impostazioni (account, tema, promemoria, server, diagnostica), 404.
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
@@ -78,7 +78,11 @@ function DebugSettings() {
   );
 }
 
-export function MorePage() {
+/**
+ * Impostazioni (ex "Altro"): account, aspetto, promemoria, server e diagnostica. Le altre pagine si
+ * raggiungono dal menù laterale.
+ */
+export function SettingsPage() {
   const adapter = useAdapter();
   const session = useSession();
   const navigate = useNavigate();
@@ -92,7 +96,7 @@ export function MorePage() {
   });
   return (
     <>
-      <PageHeader title={t("more.title")} />
+      <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
       <div className={cx(styles.stack)}>
         <Card title={t("more.account")} as="section">
           <div className={cx(styles.stack)}>
@@ -110,92 +114,20 @@ export function MorePage() {
             </div>
           </div>
         </Card>
-        <Card title={t("more.family")} as="section">
+        <Card title={t("theme.appearance")} as="section">
           <div className={cx(styles.stack)}>
-            <p className={cx(styles.muted)}>{t("more.familyHelp")}</p>
-            <div className={cx(styles.actions)}>
-              <Button variant="secondary" onPress={() => void navigate("/altro/famiglia")}>
-                {t("more.familyGo")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card title={t("more.catalog")} as="section">
-          <div className={cx(styles.stack)}>
-            <p className={cx(styles.muted)}>{t("more.catalogHelp")}</p>
-            <div className={cx(styles.actions)}>
-              <Button variant="secondary" onPress={() => void navigate("/altro/conti")}>
-                {t("accounts.title")}
-              </Button>
-              <Button variant="secondary" onPress={() => void navigate("/altro/categorie")}>
-                {t("categories.title")}
-              </Button>
-              <Button variant="secondary" onPress={() => void navigate("/altro/destinatari")}>
-                {t("payees.title")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card title={t("more.balance")} as="section">
-          <div className={cx(styles.stack)}>
-            <p className={cx(styles.muted)}>{t("more.balanceHelp")}</p>
-            <div className={cx(styles.actions)}>
-              <Button variant="secondary" onPress={() => void navigate("/saldo")}>
-                {t("balance.title")}
-              </Button>
-            </div>
+            <ThemeSwitcher />
+            <AccentPicker />
           </div>
         </Card>
         <Card title={t("rem.more")} as="section">
           <div className={cx(styles.stack)}>
             <p className={cx(styles.muted)}>{t("rem.moreHelp")}</p>
             <div className={cx(styles.actions)}>
-              <Button variant="secondary" onPress={() => void navigate("/promemoria")}>
-                {t("rem.open")}
-              </Button>
               <Button variant="secondary" onPress={() => void navigate("/altro/promemoria")}>
                 {t("rem.openSettings")}
               </Button>
             </div>
-          </div>
-        </Card>
-        <Card title={t("rec.more")} as="section">
-          <div className={cx(styles.stack)}>
-            <p className={cx(styles.muted)}>{t("rec.moreHelp")}</p>
-            <div className={cx(styles.actions)}>
-              <Button variant="secondary" onPress={() => void navigate("/ricorrenti")}>
-                {t("rec.open")}
-              </Button>
-              <Button variant="secondary" onPress={() => void navigate("/previsioni")}>
-                {t("rec.openForecast")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card title={t("rules.more")} as="section">
-          <div className={cx(styles.stack)}>
-            <p className={cx(styles.muted)}>{t("rules.moreHelp")}</p>
-            <div className={cx(styles.actions)}>
-              <Button variant="secondary" onPress={() => void navigate("/altro/regole")}>
-                {t("rules.open")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card title={t("import.more")} as="section">
-          <div className={cx(styles.stack)}>
-            <p className={cx(styles.muted)}>{t("import.moreHelp")}</p>
-            <div className={cx(styles.actions)}>
-              <Button variant="secondary" onPress={() => void navigate("/importa")}>
-                {t("import.open")}
-              </Button>
-            </div>
-          </div>
-        </Card>
-        <Card title={t("theme.appearance")} as="section">
-          <div className={cx(styles.stack)}>
-            <ThemeSwitcher />
-            <AccentPicker />
           </div>
         </Card>
         <ServerStatus />

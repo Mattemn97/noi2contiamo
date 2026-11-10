@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { Navigate, Outlet, useLocation, useOutletContext } from "react-router";
 import { useFamilies, useSession } from "../data/queries";
 import { t } from "../i18n/it";
-import { AppShell, ErrorState, NAV_ITEMS, Skeleton, type NavId } from "../ui";
+import { AppShell, ErrorState, navFor, Skeleton, type NavId } from "../ui";
 import { useReminders } from "./reminders/useReminders";
 import { pickActiveFamily, readActiveFamily } from "./family/invite";
 
@@ -16,12 +16,6 @@ export function RequireSession() {
     return <ErrorState description={t("auth.error.unavailable")} onRetry={() => void session.refetch()} />;
   if (!session.data) return <Navigate to="/accedi" replace state={{ from: location.pathname }} />;
   return <Outlet />;
-}
-
-function navFor(pathname: string): NavId | undefined {
-  const exact = NAV_ITEMS.find((item) => item.href === pathname);
-  if (exact) return exact.id;
-  return NAV_ITEMS.filter((item) => item.href !== "/" && pathname.startsWith(item.href)).at(-1)?.id;
 }
 
 export function RequireFamily() {
@@ -42,7 +36,7 @@ export function RequireFamily() {
   );
 }
 
-/** Il guscio con il numero dei promemoria da vedere accanto ad "Altro". */
+/** Il guscio con il numero dei promemoria da vedere accanto a "Promemoria" (e a "Menu" sul telefono). */
 function ShellWithBadge({
   summary,
   current,
@@ -54,7 +48,7 @@ function ShellWithBadge({
 }) {
   const { visible } = useReminders(summary);
   return (
-    <AppShell current={current} badges={{ more: visible.length }}>
+    <AppShell current={current} badges={{ reminders: visible.length }}>
       {children}
     </AppShell>
   );

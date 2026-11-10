@@ -13,6 +13,7 @@ import {
   Dialog,
   FilterBar,
   MoneyField,
+  navFor,
   ProgressBar,
   ThemeSwitcher,
   UiProvider,
@@ -181,7 +182,7 @@ describe("ThemeSwitcher (AC-2)", () => {
 });
 
 describe("AppShell (AC-6)", () => {
-  it("ha il salto al contenuto e cinque voci, con la pagina corrente marcata", () => {
+  it("ha il salto al contenuto, tutte le sezioni senza Altro e la pagina corrente marcata", () => {
     render(
       <AppShell current="transactions">
         <p>Pagina</p>
@@ -189,16 +190,65 @@ describe("AppShell (AC-6)", () => {
     );
     expect(screen.getByRole("link", { name: "Salta al contenuto" }).getAttribute("href")).toBe("#contenuto");
     const nav = screen.getByRole("navigation", { name: "Navigazione principale" });
-    const links = within(nav).getAllByRole("link");
-    expect(links.map((link) => link.textContent)).toEqual([
-      "Panoramica",
-      "Movimenti",
+    for (const heading of ["Principale", "Import e automazioni", "Gestione"])
+      expect(within(nav).getByRole("heading", { name: heading })).toBeTruthy();
+    const labels = within(nav)
+      .getAllByRole("link")
+      .map((link) => link.textContent);
+    for (const label of [
       "Aggiungi",
-      "Personale",
-      "Altro",
-    ]);
-    expect(within(nav).getByRole("link", { name: "Movimenti" }).getAttribute("aria-current")).toBe("page");
+      "Panoramica",
+      "Saldo tra i membri",
+      "Importa",
+      "Regole",
+      "Ricorrenti",
+      "Previsioni",
+      "Promemoria",
+      "Conti",
+      "Categorie",
+      "Destinatari",
+      "Famiglia e inviti",
+      "Impostazioni",
+    ])
+      expect(labels).toContain(label);
+    expect(labels).not.toContain("Altro");
+    for (const link of within(nav).getAllByRole("link", { name: "Movimenti" }))
+      expect(link.getAttribute("aria-current")).toBe("page");
     expect(screen.getByRole("main").id).toBe("contenuto");
+  });
+
+  it("il pulsante Menu apre il pannello laterale con tutte le sezioni", async () => {
+    const user = userEvent.setup();
+    render(
+      <AppShell current="rules" badges={{ reminders: 2 }}>
+        <p>Pagina</p>
+      </AppShell>,
+    );
+    const menu = screen.getByRole("button", { name: /Menus*2/ });
+    expect(menu.getAttribute("aria-current")).toBe("page");
+    await user.click(menu);
+    const drawer = await screen.findByRole("dialog", { name: "Menu" });
+    const all = within(drawer).getByRole("navigation", { name: "Tutte le sezioni" });
+    expect(within(all).getByRole("link", { name: "Regole" }).getAttribute("aria-current")).toBe("page");
+    expect(
+      within(all)
+        .getByRole("link", { name: /Promemorias*2/ })
+        .getAttribute("href"),
+    ).toBe("/promemoria");
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("riconosce la voce dal percorso, anche nelle sottopagine", () => {
+    expect(navFor("/")).toBe("overview");
+    expect(navFor("/movimenti")).toBe("transactions");
+    expect(navFor("/movimenti/nuovo")).toBe("add");
+    expect(navFor("/movimenti/abc")).toBe("transactions");
+    expect(navFor("/ricorrenti/suggerimenti")).toBe("recurring");
+    expect(navFor("/altro/regole/123")).toBe("rules");
+    expect(navFor("/importa/banca")).toBe("import");
+    expect(navFor("/impostazioni")).toBe("settings");
+    expect(navFor("/altro/promemoria")).toBeUndefined();
   });
 });
 

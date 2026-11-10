@@ -1,5 +1,5 @@
 // Le route della SPA (react-router in modalità data router, senza framework mode: spec 0001).
-import type { RouteObject } from "react-router";
+import { Navigate, type RouteObject } from "react-router";
 import { DashboardPage } from "./features/dashboard/DashboardPage";
 import { AuthPage } from "./features/auth/AuthPage";
 import { BalancePage } from "./features/balance/BalancePage";
@@ -19,7 +19,7 @@ import { SuggestionsPage } from "./features/recurring/SuggestionsPage";
 import { RuleEditorPage } from "./features/rules/RuleEditorPage";
 import { RulesPage } from "./features/rules/RulesPage";
 import { RemindersPage, ReminderSettingsPage } from "./features/reminders/RemindersPages";
-import { MorePage, NotFoundPage } from "./features/more/pages";
+import { SettingsPage, NotFoundPage } from "./features/more/pages";
 import { EditTransactionPage, NewTransactionPage } from "./features/transactions/NewTransactionPage";
 import { TransactionsPage } from "./features/transactions/TransactionsPage";
 
@@ -42,7 +42,8 @@ export const routes: RouteObject[] = [
           { path: "/importa", element: <ImportPage /> },
           { path: "/importa/banca", element: <BankReturnPage /> },
           { path: "/personale", element: <DashboardPage initialView="personal" /> },
-          { path: "/altro", element: <MorePage /> },
+          { path: "/impostazioni", element: <SettingsPage /> },
+          { path: "/altro", element: <Navigate to="/impostazioni" replace /> },
           { path: "/altro/famiglia", element: <FamilyPage /> },
           { path: "/altro/conti", element: <AccountsPage /> },
           { path: "/altro/categorie", element: <CategoriesPage /> },

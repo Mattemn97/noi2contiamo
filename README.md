@@ -11,7 +11,7 @@ Licenza [MIT](./LICENSE).
 
 ## Stato del progetto
 
-Versione `1.3.0`. La modalità con server Python e la pubblicazione su Firebase sono state provate su un'installazione reale, ma i test automatici delle regole Firestore (emulatore, serve Java 21) non sono ancora stati eseguiti. Non sono ancora stati provati:
+Versione `1.4.0`. La modalità con server Python e la pubblicazione su Firebase sono state provate su un'installazione reale, ma i test automatici delle regole Firestore (emulatore, serve Java 21) non sono ancora stati eseguiti. Non sono ancora stati provati:
 
 - l'immagine Docker e `compose.yaml`;
 - l'invio vero di email e Telegram.
@@ -124,7 +124,7 @@ Oltre al CSV, l'app può leggere i movimenti direttamente dal conto tramite Enab
 
 ## Promemoria e notifiche
 
-- **Nell'app e nel browser**: funzionano in tutti i modi, senza configurare nulla. In _Altro > Impostazioni promemoria_ scegli i canali.
+- **Nell'app e nel browser**: funzionano in tutti i modi, senza configurare nulla. In _Impostazioni > Impostazioni promemoria_ scegli i canali.
 - **Email** (solo server Python): imposta in `.env` `N2C_SMTP_HOST`, `N2C_SMTP_PORT`, `N2C_SMTP_USER`, `N2C_SMTP_PASSWORD`, `N2C_SMTP_FROM` e `N2C_SMTP_SECURITY` (`starttls`, `ssl` o `none`).
 - **Telegram** (solo server Python): crea un bot con @BotFather, imposta `N2C_TELEGRAM_BOT_TOKEN` e `N2C_TELEGRAM_CHAT_ID` (il chat id si ricava scrivendo al bot o aggiungendolo a un gruppo). Vanno impostati insieme.
 - Senza queste variabili il canale resta spento. Il server controlla i promemoria ogni `N2C_REMINDER_INTERVAL_SECONDS` secondi; i nuovi promemoria partono dopo che qualcuno ha aperto l'app, perché è il browser a calcolarli.
@@ -145,9 +145,9 @@ Tutto gira in locale, non serve una CI. Al commit un hook lancia ESLint, Prettie
 
 1. Apri l'app e scegli _Crea il tuo account_: bastano email e password (almeno 8 caratteri).
 2. Nella schermata _Crea la tua famiglia_ dai un nome alla famiglia e il tuo nome da mostrare. Diventi il proprietario e ricevi un primo conto e le categorie di base.
-3. Per far entrare l'altra persona: _Altro > Famiglia e inviti_, crea un invito e mandale il link; lei si registra e lo accetta.
+3. Per far entrare l'altra persona: _Famiglia e inviti_ nel menù, crea un invito e mandale il link; lei si registra e lo accetta.
 4. Premi _Aggiungi_ nella barra in basso (_Nuovo movimento_), scegli tipo, data, importo, conto e categoria, e salva.
-5. Il movimento compare in _Movimenti_; il saldo tra i membri è in _Altro > Saldo tra i membri_. Per caricare un estratto conto usa l'import CSV.
+5. Il movimento compare in _Movimenti_; il saldo tra i membri è in _Saldo tra i membri_ nel menù. Per caricare un estratto conto usa l'import CSV.
 
 ## Per chi sviluppa
 

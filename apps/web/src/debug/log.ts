@@ -1,5 +1,5 @@
 // Registro di diagnostica nella console del browser. Gli errori si scrivono sempre; il resto solo con
-// il registro acceso (Altro > Diagnostica, oppure `?debug=1` nell'indirizzo, `?debug=0` per spegnerlo).
+// il registro acceso (Impostazioni > Diagnostica, oppure `?debug=1` nell'indirizzo, `?debug=0` per spegnerlo).
 // Ogni dettaglio passa da `redact`: niente importi, descrizioni, nomi, email, token o chiavi.
 import { describeError, redact } from "./redact";
 

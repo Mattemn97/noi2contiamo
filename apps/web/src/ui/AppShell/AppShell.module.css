@@ -1,4 +1,4 @@
-/* Prima il telefono: barra in basso fissa; da 64rem barra laterale a sinistra. */
+/* Prima il telefono: barra in basso fissa con il menù; da 64rem barra laterale con tutte le sezioni. */
 .shell {
   min-block-size: 100dvh;
 }
@@ -36,12 +36,11 @@
   padding-block-end: env(safe-area-inset-bottom);
 }
 
-.brand,
-.appearance {
+.side {
   display: none;
 }
 
-.navList {
+.bar {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   block-size: var(--nav-height);
@@ -55,7 +54,9 @@
   min-inline-size: 0;
 }
 
+/* Voce della barra in basso: icona sopra, etichetta sotto. */
 .navItem {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -64,12 +65,16 @@
   gap: var(--space-1);
   min-inline-size: 2.75rem;
   min-block-size: 2.75rem;
+  border: 0;
   border-radius: var(--radius-md);
+  background: transparent;
   color: var(--color-text-secondary);
+  font: inherit;
   font-size: var(--text-xs);
   line-height: var(--leading-xs);
   font-weight: var(--weight-medium);
   text-decoration: none;
+  cursor: pointer;
 }
 
 .navLabel {
@@ -101,6 +106,85 @@
   outline-offset: -2px;
 }
 
+.bar .navBadge {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-end: calc(50% - 1.5rem);
+}
+
+/* Sezioni (barra laterale e menù): voci in riga con titolo del gruppo. */
+.section {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.sectionTitle {
+  padding: 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  line-height: var(--leading-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sectionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.side .navItem,
+.drawerNav .navItem {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  padding-inline: var(--space-3);
+  font-size: var(--text-md);
+  line-height: var(--leading-md);
+  color: var(--color-text);
+}
+
+.side .navItem[aria-current="page"],
+.drawerNav .navItem[aria-current="page"] {
+  background: var(--color-accent-subtle);
+  color: var(--color-text);
+}
+
+.side .navItem[data-primary] .navIcon {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-accent);
+}
+
+.side .navItem[data-primary] .navLabel {
+  color: var(--color-text);
+}
+
+.side .navBadge,
+.drawerNav .navBadge {
+  margin-inline-start: auto;
+}
+
+.drawerNav {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.drawerAppearance {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-3) 0;
+  border-block-start: 1px solid var(--color-border);
+  padding-block-start: var(--space-4);
+}
+
 @media (min-width: 48rem) {
   .main {
     padding-inline: var(--space-6);
@@ -115,8 +199,6 @@
 
   .nav {
     position: sticky;
-    display: flex;
-    flex-direction: column;
     inset-block: 0;
     block-size: 100dvh;
     overflow-y: auto;
@@ -126,9 +208,19 @@
     padding: var(--space-6) var(--space-3);
   }
 
+  .bar {
+    display: none;
+  }
+
+  .side {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+    min-block-size: 100%;
+  }
+
   .brand {
-    display: block;
-    padding: 0 var(--space-3) var(--space-6);
+    padding: 0 var(--space-3);
     font-size: var(--text-lg);
     line-height: var(--leading-lg);
     font-weight: var(--weight-semibold);
@@ -139,48 +231,7 @@
     display: grid;
     gap: var(--space-4);
     margin-block-start: auto;
-    padding: var(--space-6) var(--space-3) 0;
-  }
-
-  .navList {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-    block-size: auto;
-    padding: 0;
-  }
-
-  .navItem {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: var(--space-3);
-    padding-inline: var(--space-3);
-    font-size: var(--text-md);
-    line-height: var(--leading-md);
-    color: var(--color-text);
-  }
-
-  .navItem[aria-current="page"] {
-    background: var(--color-accent-subtle);
-    color: var(--color-text);
-  }
-
-  .navItem[data-primary] .navIcon {
-    inline-size: 1.25rem;
-    block-size: 1.25rem;
-    padding: 0;
-    border-radius: 0;
-    background: transparent;
-    color: var(--color-accent);
-  }
-
-  .navItem[data-primary] .navLabel {
-    color: var(--color-text);
-  }
-
-  .navEntry[data-primary] {
-    order: -1;
-    margin-block-end: var(--space-3);
+    padding: var(--space-4) var(--space-3) 0;
   }
 
   .main {
