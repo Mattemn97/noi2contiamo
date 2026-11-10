@@ -2,7 +2,7 @@ import type { DataAdapter } from "@noi2contiamo/data";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { createBrowserRouter, RouterProvider } from "react-router";
+import { createBrowserRouter, createHashRouter, RouterProvider } from "react-router";
 import { loadAdapter } from "./adapter";
 import { applyDebugParam, logError, logInfo } from "./debug/log";
 import { withLogging } from "./debug/loggedAdapter";
@@ -22,8 +22,16 @@ const UiCatalog = import.meta.env.DEV
   ? lazy(() => import("./dev/UiCatalog").then((module) => ({ default: module.UiCatalog })))
   : null;
 
+// Fascia della demo del sito: solo in quella build.
+const DemoBanner =
+  import.meta.env.VITE_BACKEND === "demo"
+    ? lazy(() => import("./demo/DemoBanner").then((module) => ({ default: module.DemoBanner })))
+    : null;
+
 function render(adapter: DataAdapter, container: HTMLElement) {
-  const router = createBrowserRouter(routes);
+  // La demo sta in una sottocartella di GitHub Pages, che non sa riscrivere i percorsi verso index.html.
+  const demo = import.meta.env.VITE_BACKEND === "demo";
+  const router = demo ? createHashRouter(routes) : createBrowserRouter(routes);
   // Solo il percorso: i parametri possono contenere codici di accesso (ritorno dalla banca, inviti).
   router.subscribe((state) => {
     logInfo("nav", { path: state.location.pathname });
@@ -33,6 +41,11 @@ function render(adapter: DataAdapter, container: HTMLElement) {
   createRoot(container).render(
     <StrictMode>
       <UiProvider>
+        {DemoBanner ? (
+          <Suspense fallback={null}>
+            <DemoBanner />
+          </Suspense>
+        ) : null}
         <AdapterProvider adapter={adapter}>
           <QueryClientProvider client={createQueryClient()}>
             <Suspense fallback={null}>{page}</Suspense>

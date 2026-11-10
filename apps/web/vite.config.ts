@@ -5,13 +5,17 @@ import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
-  // `--mode firebase` sceglie Firebase; altrimenti vale VITE_BACKEND, con default `http`.
-  const backend = env.VITE_BACKEND ?? (mode === "firebase" ? "firebase" : "http");
-  if (backend !== "http" && backend !== "firebase") {
-    throw new Error(`VITE_BACKEND non valido: ${backend} (usa "http" oppure "firebase")`);
+  // `--mode firebase` sceglie Firebase, `--mode demo` la demo in memoria del sito; altrimenti vale VITE_BACKEND,
+  // con default `http`.
+  const backend = env.VITE_BACKEND ?? (mode === "firebase" || mode === "demo" ? mode : "http");
+  if (backend !== "http" && backend !== "firebase" && backend !== "demo") {
+    throw new Error(`VITE_BACKEND non valido: ${backend} (usa "http", "firebase" oppure "demo")`);
   }
+  const demo = backend === "demo";
 
   return {
+    // La demo vive in una sottocartella del sito (GitHub Pages): percorsi relativi e router con l'hash.
+    base: demo ? "./" : "/",
     define: {
       "import.meta.env.VITE_BACKEND": JSON.stringify(backend),
       // Versione del repository, per riconoscere nel registro di diagnostica quale build gira.
@@ -26,6 +30,8 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       VitePWA({
+        // La demo non si installa: niente service worker che resti in cache dopo una nuova versione.
+        disable: demo,
         registerType: "autoUpdate",
         includeAssets: ["icon.svg"],
         manifest: {

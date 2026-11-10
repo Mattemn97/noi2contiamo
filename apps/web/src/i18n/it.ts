@@ -3,6 +3,12 @@ export const it = {
   "app.title": "Noi2Contiamo",
   "app.tagline": "La contabilità di coppia e di famiglia.",
   "status.backend": "Modalità dati: {backend}",
+
+  "demo.label": "Demo",
+  "demo.notice":
+    "Demo con dati inventati: quello che modifichi resta nel browser e sparisce ricaricando la pagina.",
+  "demo.credentials": "Per rientrare: {email}, password {password}.",
+  "demo.back": "Torna alla presentazione",
   "status.checking": "Controllo il server…",
   "status.online": "Server raggiungibile",
   "status.offline": "Server non raggiungibile",

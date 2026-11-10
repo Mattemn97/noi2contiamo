@@ -214,6 +214,7 @@ export function createBankApi(options: BankApiOptions): BankApi {
  * `bank` con il token di accesso. Con l'emulatore Firebase la funzione non c'è: connessione non disponibile.
  */
 export function createDefaultBankApi(): BankApi {
+  if (import.meta.env.VITE_BACKEND === "demo") return unavailableApi;
   if (import.meta.env.VITE_BACKEND === "firebase") {
     const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
     if (import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true" || !projectId) return unavailableApi;

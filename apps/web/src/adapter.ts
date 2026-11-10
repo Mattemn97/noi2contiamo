@@ -5,6 +5,10 @@ import type { DataAdapter } from "@noi2contiamo/data";
  * quindi il ramo non scelto (e il suo SDK) resta fuori dal bundle.
  */
 export async function loadAdapter(): Promise<DataAdapter> {
+  if (import.meta.env.VITE_BACKEND === "demo") {
+    const { createDemoAdapter } = await import("./demo/seed");
+    return createDemoAdapter();
+  }
   if (import.meta.env.VITE_BACKEND === "firebase") {
     const { createFirebaseAdapter } = await import("@noi2contiamo/data/firebase");
     const useEmulator = import.meta.env.VITE_USE_FIREBASE_EMULATOR === "true";

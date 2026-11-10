@@ -43,6 +43,7 @@
     "dev:firebase": "npm run dev:firebase -w @noi2contiamo/web",
     "build": "npm run typecheck && npm run build -w @noi2contiamo/web",
     "build:firebase": "npm run typecheck && npm run build:firebase -w @noi2contiamo/web",
+    "build:site": "npm run typecheck && node scripts/build-site.mjs",
     "demo": "node scripts/uv.mjs run --project server python -m noi2contiamo_server.demo",
     "local": "npm run build && node scripts/uv.mjs run --project server python -m noi2contiamo_server",
     "typecheck": "tsc -b && tsc -p tsconfig.tools.json && tsc -p apps/functions --noEmit",
